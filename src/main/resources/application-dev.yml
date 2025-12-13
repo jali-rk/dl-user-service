@@ -3,9 +3,9 @@ spring:
     name: userservice
 
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://host.docker.internal:5432/userservice_db
+    username: postgres
+    password: abcd1234
     driver-class-name: org.postgresql.Driver
 
   jpa:
