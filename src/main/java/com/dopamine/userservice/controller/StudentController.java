@@ -45,6 +45,7 @@ public class StudentController {
     public ResponseEntity<UserPublicView> verifyStudentCode(
             @Valid @RequestBody VerifyCodeRequest request) {
         log.info("Student verification request received for email: {}", request.getEmail());
+        log.info("Code: {}", request.getCode());
         UserPublicView user = userService.verifyStudentCode(request);
         return ResponseEntity.ok(user);
     }

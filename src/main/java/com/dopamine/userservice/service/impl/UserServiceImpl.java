@@ -107,7 +107,7 @@ public class UserServiceImpl implements UserService {
     public UserPublicView verifyStudentCode(VerifyCodeRequest request) {
         log.info("Verifying student code for email: {}", request.getEmail());
 
-        // Find user by email
+        // Find user by email: What if two students are gonna use the same email? -> Handled by unique constraint on registration
         User user = userRepository.findByEmailIgnoreCaseAndNotDeleted(request.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("User not found with email: " + request.getEmail()));
 

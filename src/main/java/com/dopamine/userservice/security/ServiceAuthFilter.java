@@ -6,14 +6,17 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 
 /**
  * Filter to authenticate internal service-to-service calls.
- * Validates the X-Service-Token header against configured token.
  */
 @Component
 @Slf4j
@@ -55,8 +58,15 @@ public class ServiceAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Token is valid, proceed with request
+        // Token is valid, set authentication in SecurityContext
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                "internal-service",
+                null,
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_SERVICE"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        // Proceed with request
         filterChain.doFilter(request, response);
     }
 }
-
