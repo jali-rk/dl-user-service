@@ -31,9 +31,15 @@ public class ServiceAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Skip authentication for actuator endpoints (if any) and health checks
+        // Skip authentication for actuator endpoints and health checks
+        // Note: With context path /userservice, paths will be /userservice/actuator/* and /userservice/health
         String requestPath = request.getRequestURI();
-        if (requestPath.startsWith("/actuator") || requestPath.equals("/health")) {
+
+        // Allow health endpoints (both custom and actuator)
+        if (requestPath.endsWith("/health") ||
+            requestPath.contains("/actuator/") ||
+            requestPath.endsWith("/actuator")) {
+            log.debug("Allowing unauthenticated access to health/actuator endpoint: {}", requestPath);
             filterChain.doFilter(request, response);
             return;
         }
