@@ -58,7 +58,15 @@ public class SecurityConfig {
                 // Authorization rules - order matters!
                 .authorizeHttpRequests(auth -> auth
                     // Explicitly allow health and actuator endpoints without ANY authentication
-                    .requestMatchers("/health", "/actuator", "/actuator/**").permitAll()
+                    // Include both relative paths (after context stripping) and full paths (to be safe)
+                    .requestMatchers(
+                        "/health",
+                        "/actuator",
+                        "/actuator/**",
+                        "/userservice/health",
+                        "/userservice/actuator",
+                        "/userservice/actuator/**"
+                    ).permitAll()
                     // All other requests require service token authentication (handled by ServiceAuthFilter)
                     .anyRequest().authenticated()
                 )
