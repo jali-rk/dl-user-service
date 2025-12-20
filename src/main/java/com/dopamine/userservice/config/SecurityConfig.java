@@ -55,11 +55,11 @@ public class SecurityConfig {
                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // Authorization rules
+                // Authorization rules - order matters!
                 .authorizeHttpRequests(auth -> auth
-                    // Allow actuator endpoints (if any) for health checks
-                    .requestMatchers("/actuator/**", "/health").permitAll()
-                    // All other requests require service token authentication
+                    // Explicitly allow health and actuator endpoints without ANY authentication
+                    .requestMatchers("/health", "/actuator", "/actuator/**").permitAll()
+                    // All other requests require service token authentication (handled by ServiceAuthFilter)
                     .anyRequest().authenticated()
                 )
 
