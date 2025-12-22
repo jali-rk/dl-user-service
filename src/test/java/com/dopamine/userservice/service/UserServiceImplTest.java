@@ -53,6 +53,9 @@ class UserServiceImplTest {
     @Mock
     private BCryptPasswordEncoder passwordEncoder;
 
+    @Mock
+    private StudentCodeGeneratorService studentCodeGeneratorService;
+
     @InjectMocks
     private UserServiceImpl userService;
 
@@ -64,7 +67,8 @@ class UserServiceImplTest {
                 verificationCodeRepository,
                 passwordResetTokenRepository,
                 userMapper,
-                passwordEncoder
+                passwordEncoder,
+                studentCodeGeneratorService
         );
     }
 
@@ -77,16 +81,16 @@ class UserServiceImplTest {
         void shouldRegisterStudentSuccessfully() {
             // Given
             StudentRegistrationRequest request = TestDataBuilder.defaultStudentRegistrationRequest().build();
-            Long nextCodeNumber = 1001L;
+            String generatedCode = "560001";
             String hashedPassword = "$2a$10$hashedPassword";
 
             when(userRepository.existsByEmailIgnoreCaseAndNotDeleted(request.getEmail())).thenReturn(false);
-            when(userRepository.getNextStudentCodeNumber()).thenReturn(nextCodeNumber);
+            when(studentCodeGeneratorService.generateStudentCode()).thenReturn(generatedCode);
             when(passwordEncoder.encode(request.getPassword())).thenReturn(hashedPassword);
 
             User savedUser = TestDataBuilder.defaultStudent()
                     .email(request.getEmail())
-                    .codeNumber("1001")
+                    .codeNumber(generatedCode)
                     .build();
             when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
@@ -99,25 +103,25 @@ class UserServiceImplTest {
             assertThat(response.isVerificationCodeGenerated()).isTrue();
             assertThat(response.getUser()).isNotNull();
             assertThat(response.getUser().getEmail()).isEqualTo(request.getEmail().toLowerCase());
-            assertThat(response.getUser().getCodeNumber()).isEqualTo("1001");
+            assertThat(response.getUser().getCodeNumber()).isEqualTo(generatedCode);
             assertThat(response.getUser().isVerified()).isFalse();
 
             // Verify interactions
             verify(userRepository).existsByEmailIgnoreCaseAndNotDeleted(request.getEmail());
-            verify(userRepository).getNextStudentCodeNumber();
+            verify(studentCodeGeneratorService).generateStudentCode();
             verify(passwordEncoder).encode(request.getPassword());
 
             ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userCaptor.capture());
             User capturedUser = userCaptor.getValue();
-            assertThat(capturedUser.getCodeNumber()).isEqualTo("1001");
+            assertThat(capturedUser.getCodeNumber()).isEqualTo(generatedCode);
             assertThat(capturedUser.getRole()).isEqualTo(Role.STUDENT);
             assertThat(capturedUser.isVerified()).isFalse();
 
             ArgumentCaptor<VerificationCode> codeCaptor = ArgumentCaptor.forClass(VerificationCode.class);
             verify(verificationCodeRepository).save(codeCaptor.capture());
             VerificationCode capturedCode = codeCaptor.getValue();
-            assertThat(capturedCode.getCode()).isEqualTo("1001");
+            assertThat(capturedCode.getCode()).isEqualTo(generatedCode);
             assertThat(capturedCode.getType()).isEqualTo(VerificationType.REGISTRATION);
             assertThat(capturedCode.getRetryCount()).isEqualTo(0);
         }
@@ -147,7 +151,7 @@ class UserServiceImplTest {
                     .build();
 
             when(userRepository.existsByEmailIgnoreCaseAndNotDeleted(anyString())).thenReturn(false);
-            when(userRepository.getNextStudentCodeNumber()).thenReturn(1001L);
+            when(studentCodeGeneratorService.generateStudentCode()).thenReturn("560001");
             when(passwordEncoder.encode(anyString())).thenReturn("hashedPassword");
             when(userRepository.save(any(User.class))).thenReturn(TestDataBuilder.defaultStudent().build());
 

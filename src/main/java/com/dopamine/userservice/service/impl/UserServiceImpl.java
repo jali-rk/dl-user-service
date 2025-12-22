@@ -7,6 +7,7 @@ import com.dopamine.userservice.mapper.UserMapper;
 import com.dopamine.userservice.repository.PasswordResetTokenRepository;
 import com.dopamine.userservice.repository.UserRepository;
 import com.dopamine.userservice.repository.VerificationCodeRepository;
+import com.dopamine.userservice.service.StudentCodeGeneratorService;
 import com.dopamine.userservice.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -31,19 +32,22 @@ public class UserServiceImpl implements UserService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final UserMapper userMapper;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final StudentCodeGeneratorService studentCodeGeneratorService;
 
     public UserServiceImpl(
             UserRepository userRepository,
             VerificationCodeRepository verificationCodeRepository,
             PasswordResetTokenRepository passwordResetTokenRepository,
             UserMapper userMapper,
-            BCryptPasswordEncoder passwordEncoder
+            BCryptPasswordEncoder passwordEncoder,
+            StudentCodeGeneratorService studentCodeGeneratorService
     ) {
         this.userRepository = userRepository;
         this.verificationCodeRepository = verificationCodeRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
+        this.studentCodeGeneratorService = studentCodeGeneratorService;
     }
 
     @Override
@@ -58,8 +62,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // Generate registration number from sequence
-        Long nextCodeNumber = userRepository.getNextStudentCodeNumber();
-        String registrationNumber = String.valueOf(nextCodeNumber);
+        String registrationNumber = studentCodeGeneratorService.generateStudentCode();
         log.debug("Generated registration number: {}", registrationNumber);
 
         // Create user entity
