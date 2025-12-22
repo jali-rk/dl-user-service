@@ -51,6 +51,18 @@ public class StudentController {
     }
 
     /**
+     * Resend verification code to student.
+     * POST /students/resend-verification-code
+     */
+    @PostMapping("/resend-verification-code")
+    public ResponseEntity<ResendVerificationCodeResponse> resendVerificationCode(
+            @Valid @RequestBody ResendVerificationCodeRequest request) {
+        log.info("Resend verification code request received for email: {}", request.getEmail());
+        ResendVerificationCodeResponse response = userService.resendVerificationCode(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Get student by ID.
      * GET /students/{studentId}
      */

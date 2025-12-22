@@ -1,5 +1,6 @@
 package com.dopamine.userservice.service.impl;
 
+import com.dopamine.userservice.constants.ApplicationConstants;
 import com.dopamine.userservice.domain.*;
 import com.dopamine.userservice.dto.*;
 import com.dopamine.userservice.exception.*;
@@ -14,7 +15,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -88,7 +88,7 @@ public class UserServiceImpl implements UserService {
                 .userId(user.getId())
                 .code(registrationNumber)
                 .type(VerificationType.REGISTRATION)
-                .expiresAt(Instant.now().plus(Duration.ofMinutes(2)))
+                .expiresAt(Instant.now().plus(ApplicationConstants.VerificationCode.REGISTRATION_CODE_EXPIRY))
                 .retryCount(0)
                 .build();
 
@@ -154,6 +154,72 @@ public class UserServiceImpl implements UserService {
 
         log.info("Successfully verified user: {}", user.getId());
         return userMapper.toPublicView(user);
+    }
+
+    @Override
+    @Transactional
+    public ResendVerificationCodeResponse resendVerificationCode(ResendVerificationCodeRequest request) {
+        log.info("Resending verification code for email: {}", request.getEmail());
+
+        // Find user by email
+        User user = userRepository.findByEmailIgnoreCaseAndNotDeleted(request.getEmail())
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + request.getEmail()));
+
+        // Check if user is already verified
+        if (user.isVerified()) {
+            log.info("User {} is already verified, no need to resend code", user.getId());
+            return ResendVerificationCodeResponse.builder()
+                    .success(false)
+                    .message("User is already verified")
+                    .build();
+        }
+
+        // Check if user is a student
+        if (user.getRole() != Role.STUDENT) {
+            log.warn("Attempted to resend verification code for non-student user: {}", user.getId());
+            throw new IllegalArgumentException("Verification codes can only be resent for students");
+        }
+
+        // Mark any existing active codes as consumed (invalidate old codes)
+        verificationCodeRepository.findLatestActiveByUserIdAndType(
+                user.getId(),
+                VerificationType.REGISTRATION,
+                Instant.now()
+        ).ifPresent(oldCode -> {
+            oldCode.markAsConsumed();
+            verificationCodeRepository.save(oldCode);
+            log.debug("Marked old verification code as consumed for user: {}", user.getId());
+        });
+
+        // Generate a NEW random student code (this will be the new permanent student number)
+        String newStudentCode = studentCodeGeneratorService.generateStudentCode();
+        log.debug("Generated new student code: {}", newStudentCode);
+
+        // Update user's permanent code number with the new code
+        user.setCodeNumber(newStudentCode);
+        userRepository.save(user);
+        log.info("Updated user {} with new code number: {}", user.getId(), newStudentCode);
+
+        // Create new verification code with the same code (verification code = student code)
+        VerificationCode verificationCodeEntity = VerificationCode.builder()
+                .userId(user.getId())
+                .code(newStudentCode) // Same as the new student code number
+                .type(VerificationType.REGISTRATION)
+                .expiresAt(Instant.now().plus(ApplicationConstants.VerificationCode.REGISTRATION_CODE_EXPIRY))
+                .retryCount(0)
+                .build();
+
+        verificationCodeRepository.save(verificationCodeEntity);
+        log.info("Created new verification code for user: {}", user.getId());
+
+        // TODO: Send notification with verification code to student's email
+        log.info("TODO: Send verification code {} to email {}", newStudentCode, user.getEmail());
+
+        return ResendVerificationCodeResponse.builder()
+                .success(true)
+                .message("Verification code has been resent")
+                .code(newStudentCode)
+                .build();
     }
 
     @Override
@@ -380,7 +446,7 @@ public class UserServiceImpl implements UserService {
                 PasswordResetToken token = PasswordResetToken.builder()
                         .userId(user.getId())
                         .tokenHash(tokenHash)
-                        .expiresAt(Instant.now().plus(Duration.ofMinutes(30)))
+                        .expiresAt(Instant.now().plus(ApplicationConstants.PasswordReset.PASSWORD_RESET_TOKEN_EXPIRY))
                         .used(false)
                         .build();
 

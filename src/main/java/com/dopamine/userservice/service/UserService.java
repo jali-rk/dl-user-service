@@ -23,6 +23,11 @@ public interface UserService {
     UserPublicView verifyStudentCode(VerifyCodeRequest request);
 
     /**
+     * Resend verification code to a student.
+     */
+    ResendVerificationCodeResponse resendVerificationCode(ResendVerificationCodeRequest request);
+
+    /**
      * Get a student by ID.
      */
     UserPublicView getStudentById(UUID studentId);
