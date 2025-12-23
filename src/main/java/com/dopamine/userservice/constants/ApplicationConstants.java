@@ -20,7 +20,7 @@ public final class ApplicationConstants {
         /**
          * Expiry duration for registration verification codes (3 minutes)
          */
-        public static final Duration REGISTRATION_CODE_EXPIRY = Duration.ofMinutes(3);
+        public static final Duration REGISTRATION_CODE_EXPIRY = Duration.ofMinutes(5);
     }
 
     /**
