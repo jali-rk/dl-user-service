@@ -85,11 +85,14 @@ public class AdminController {
             List<UserPublicView> admins = userService.listAdminsByRole(role);
             return ResponseEntity.ok(admins);
         } else {
-            // Default to listing all admins (ADMIN role)
-            log.debug("Listing all admins (default to ADMIN role)");
-            List<UserPublicView> admins = userService.listAdminsByRole(Role.ADMIN);
-            return ResponseEntity.ok(admins);
+            // Default to listing all admins (ADMIN and MAIN_ADMIN roles)
+            log.debug("Listing all admins with roles ADMIN and MAIN_ADMIN");
+            List<UserPublicView> allAdmins = userService.listAdminsByRole(Role.ADMIN);
+            allAdmins.addAll(userService.listAdminsByRole(Role.MAIN_ADMIN));
+            log.debug("Total admins found: {}", allAdmins.size());
+            return ResponseEntity.ok(allAdmins);
         }
+
     }
 }
 
