@@ -63,6 +63,18 @@ public class StudentController {
     }
 
     /**
+     * Get all active and verified students.
+     * GET /students
+     */
+    @GetMapping
+    public ResponseEntity<java.util.List<UserPublicView>> getAllActiveVerifiedStudents() {
+        log.info("Get all active and verified students request received");
+        java.util.List<UserPublicView> students = userService.getAllActiveVerifiedStudents();
+        log.info("Returning {} active and verified students", students.size());
+        return ResponseEntity.ok(students);
+    }
+
+    /**
      * Get student by ID.
      * GET /students/{studentId}
      */

@@ -240,6 +240,20 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<UserPublicView> getAllActiveVerifiedStudents() {
+        log.info("Fetching all active and verified students");
+
+        List<User> students = userRepository.findAllActiveVerifiedStudents();
+
+        log.info("Found {} active and verified students", students.size());
+
+        return students.stream()
+                .map(userMapper::toPublicView)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public UserPublicView updateStudent(UUID studentId, StudentUpdateRequest request) {
         log.info("Updating student: {}", studentId);

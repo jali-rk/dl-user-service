@@ -49,6 +49,17 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     List<User> findByRoleAndStatusAndNotDeleted(@Param("role") Role role, @Param("status") UserStatus status);
 
     /**
+     * Find all active and verified students.
+     * Returns students with role = STUDENT, status = ACTIVE, and isVerified = true.
+     */
+    @Query("SELECT u FROM User u WHERE u.role = com.dopamine.userservice.domain.Role.STUDENT " +
+           "AND u.status = com.dopamine.userservice.domain.UserStatus.ACTIVE " +
+           "AND u.isVerified = true " +
+           "AND u.deletedAt IS NULL " +
+           "ORDER BY u.createdAt DESC")
+    List<User> findAllActiveVerifiedStudents();
+
+    /**
      * Check if a user exists with the given email (case-insensitive), excluding soft-deleted users.
      */
     @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM User u WHERE LOWER(u.email) = LOWER(:email) AND u.deletedAt IS NULL")

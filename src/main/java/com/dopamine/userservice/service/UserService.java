@@ -33,6 +33,14 @@ public interface UserService {
     UserPublicView getStudentById(UUID studentId);
 
     /**
+     * Get all active and verified students.
+     * Returns all students with status = ACTIVE and isVerified = true.
+     *
+     * @return list of all active and verified students
+     */
+    List<UserPublicView> getAllActiveVerifiedStudents();
+
+    /**
      * Update a student's profile.
      */
     UserPublicView updateStudent(UUID studentId, StudentUpdateRequest request);
