@@ -3,6 +3,8 @@ package com.dopamine.userservice.repository;
 import com.dopamine.userservice.domain.Role;
 import com.dopamine.userservice.domain.User;
 import com.dopamine.userservice.domain.UserStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -49,15 +51,25 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     List<User> findByRoleAndStatusAndNotDeleted(@Param("role") Role role, @Param("status") UserStatus status);
 
     /**
-     * Find all active and verified students.
+     * Find all active and verified students with pagination.
      * Returns students with role = STUDENT, status = ACTIVE, and isVerified = true.
+     * Ordered by creation date descending (newest first).
      */
     @Query("SELECT u FROM User u WHERE u.role = com.dopamine.userservice.domain.Role.STUDENT " +
            "AND u.status = com.dopamine.userservice.domain.UserStatus.ACTIVE " +
            "AND u.isVerified = true " +
-           "AND u.deletedAt IS NULL " +
-           "ORDER BY u.createdAt DESC")
-    List<User> findAllActiveVerifiedStudents();
+           "AND u.deletedAt IS NULL")
+    Page<User> findAllActiveVerifiedStudents(Pageable pageable);
+
+    /**
+     * Count all active and verified students.
+     * Used for pagination total count.
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = com.dopamine.userservice.domain.Role.STUDENT " +
+           "AND u.status = com.dopamine.userservice.domain.UserStatus.ACTIVE " +
+           "AND u.isVerified = true " +
+           "AND u.deletedAt IS NULL")
+    long countActiveVerifiedStudents();
 
     /**
      * Check if a user exists with the given email (case-insensitive), excluding soft-deleted users.

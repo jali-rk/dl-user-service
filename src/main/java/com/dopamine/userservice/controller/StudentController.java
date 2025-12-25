@@ -3,9 +3,12 @@ package com.dopamine.userservice.controller;
 import com.dopamine.userservice.dto.*;
 import com.dopamine.userservice.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -17,6 +20,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/students")
 @Slf4j
+@Validated
 public class StudentController {
 
     private final UserService userService;
@@ -63,15 +67,23 @@ public class StudentController {
     }
 
     /**
-     * Get all active and verified students.
-     * GET /students
+     * Get paginated list of all active and verified students.
+     * GET /students?page=1&pageSize=50
+     *
+     * @param page Page number (minimum 1)
+     * @param pageSize Number of items per page (minimum 1, maximum 100)
+     * @return Paginated response with students and total count
      */
     @GetMapping
-    public ResponseEntity<java.util.List<UserPublicView>> getAllActiveVerifiedStudents() {
-        log.info("Get all active and verified students request received");
-        java.util.List<UserPublicView> students = userService.getAllActiveVerifiedStudents();
-        log.info("Returning {} active and verified students", students.size());
-        return ResponseEntity.ok(students);
+    public ResponseEntity<PaginatedStudentsResponse> getAllStudents(
+            @RequestParam @Min(value = 1, message = "Page must be at least 1") Integer page,
+            @RequestParam @Min(value = 1, message = "Page size must be at least 1")
+            @Max(value = 100, message = "Page size must not exceed 100") Integer pageSize) {
+
+        log.info("Get students request: page={}, pageSize={}", page, pageSize);
+        PaginatedStudentsResponse response = userService.getStudentsPaginated(page, pageSize);
+        log.info("Returning {} students out of {} total", response.getItems().size(), response.getTotal());
+        return ResponseEntity.ok(response);
     }
 
     /**

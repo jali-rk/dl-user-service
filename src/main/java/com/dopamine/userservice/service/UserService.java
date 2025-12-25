@@ -33,12 +33,14 @@ public interface UserService {
     UserPublicView getStudentById(UUID studentId);
 
     /**
-     * Get all active and verified students.
-     * Returns all students with status = ACTIVE and isVerified = true.
+     * Get paginated list of all active and verified students.
+     * Returns students with status = ACTIVE and isVerified = true.
      *
-     * @return list of all active and verified students
+     * @param page Page number (1-based)
+     * @param pageSize Number of items per page (max 100)
+     * @return Paginated response with students and total count
      */
-    List<UserPublicView> getAllActiveVerifiedStudents();
+    PaginatedStudentsResponse getStudentsPaginated(int page, int pageSize);
 
     /**
      * Update a student's profile.

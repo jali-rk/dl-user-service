@@ -12,6 +12,10 @@ import com.dopamine.userservice.service.EmailNotificationService;
 import com.dopamine.userservice.service.StudentCodeGeneratorService;
 import com.dopamine.userservice.service.UserService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -241,16 +245,30 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<UserPublicView> getAllActiveVerifiedStudents() {
-        log.info("Fetching all active and verified students");
+    public PaginatedStudentsResponse getStudentsPaginated(int page, int pageSize) {
+        log.info("Fetching students: page={}, pageSize={}", page, pageSize);
 
-        List<User> students = userRepository.findAllActiveVerifiedStudents();
+        // Create pageable with page number (0-based for Spring Data), size, and sorting
+        // page parameter from client is 1-based, convert to 0-based for Spring Data
+        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        log.info("Found {} active and verified students", students.size());
+        // Fetch paginated students
+        Page<User> studentPage = userRepository.findAllActiveVerifiedStudents(pageable);
 
-        return students.stream()
-                .map(userMapper::toPublicView)
+        // Map to StudentListItem DTOs
+        List<StudentListItem> items = studentPage.getContent().stream()
+                .map(userMapper::toStudentListItem)
                 .collect(Collectors.toList());
+
+        // Get total count
+        long total = studentPage.getTotalElements();
+
+        log.info("Found {} students on page {} out of {} total", items.size(), page, total);
+
+        return PaginatedStudentsResponse.builder()
+                .items(items)
+                .total(total)
+                .build();
     }
 
     @Override
