@@ -56,6 +56,9 @@ class UserServiceImplTest {
     @Mock
     private StudentCodeGeneratorService studentCodeGeneratorService;
 
+    @Mock
+    private EmailNotificationService emailNotificationService;
+
     @InjectMocks
     private UserServiceImpl userService;
 
@@ -68,7 +71,8 @@ class UserServiceImplTest {
                 passwordResetTokenRepository,
                 userMapper,
                 passwordEncoder,
-                studentCodeGeneratorService
+                studentCodeGeneratorService,
+                emailNotificationService
         );
     }
 
