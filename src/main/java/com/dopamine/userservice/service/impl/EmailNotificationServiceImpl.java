@@ -14,12 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Implementation of EmailNotificationService.
- * Sends emails by calling BFF's internal notification endpoint.
+ * Sends emails by calling BFF's broadcast notification endpoint.
  */
 @Service
 @Slf4j
@@ -42,14 +39,12 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
     public void sendVerificationCodeEmail(String email, String code) {
         log.info("Sending verification code email to: {}", email);
 
-        Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put(ApplicationConstants.Email.VAR_CODE, code);
-
+        // Note: Using email as targetUserId since user might not have UUID yet during registration
+        // The BFF broadcast service should handle email-based targeting
         EmailNotificationRequest request = EmailNotificationRequest.builder()
-                .to(email)
-                .subject(ApplicationConstants.Email.SUBJECT_VERIFICATION_CODE)
-                .templateName(ApplicationConstants.Email.TEMPLATE_VERIFICATION_CODE)
-                .templateVariables(templateVariables)
+                .targetUserIds(java.util.List.of(email))
+                .channels(java.util.List.of("EMAIL"))
+                .title(ApplicationConstants.Email.SUBJECT_VERIFICATION_CODE)
                 .body(ApplicationConstants.Email.BODY_VERIFICATION_CODE.formatted(code))
                 .build();
 
@@ -60,14 +55,10 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
     public void sendResendVerificationCodeEmail(String email, String code) {
         log.info("Sending resend verification code email to: {}", email);
 
-        Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put(ApplicationConstants.Email.VAR_CODE, code);
-
         EmailNotificationRequest request = EmailNotificationRequest.builder()
-                .to(email)
-                .subject(ApplicationConstants.Email.SUBJECT_RESEND_VERIFICATION_CODE)
-                .templateName(ApplicationConstants.Email.TEMPLATE_RESEND_VERIFICATION_CODE)
-                .templateVariables(templateVariables)
+                .targetUserIds(java.util.List.of(email))
+                .channels(java.util.List.of("EMAIL"))
+                .title(ApplicationConstants.Email.SUBJECT_RESEND_VERIFICATION_CODE)
                 .body(ApplicationConstants.Email.BODY_RESEND_VERIFICATION_CODE.formatted(code))
                 .build();
 
@@ -75,13 +66,13 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
     }
 
     /**
-     * Send email via BFF internal endpoint.
+     * Send email via BFF broadcast notification endpoint.
      */
     private void sendEmail(EmailNotificationRequest request, EmailType emailType) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("Authorization", "Bearer " + bffProperties.getInternalToken());
+            headers.set("X-Service-Token", "change-me-in-production");
 
             HttpEntity<EmailNotificationRequest> httpEntity = new HttpEntity<>(request, headers);
 
@@ -91,10 +82,10 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
                     Void.class
             );
 
-            log.info("Successfully sent {} email to: {}", emailType, request.getTo());
+            log.info("Successfully sent {} email via broadcast to: {}", emailType, request.getTargetUserIds());
 
         } catch (RestClientException e) {
-            log.error("Failed to send {} email to: {}. Error: {}", emailType, request.getTo(), e.getMessage(), e);
+            log.error("Failed to send {} email to: {}. Error: {}", emailType, request.getTargetUserIds(), e.getMessage(), e);
             // Don't throw exception - email sending failure should not break the main flow
             // The calling service should continue (e.g., user registration should still succeed)
         }

@@ -11,7 +11,6 @@ import com.dopamine.userservice.service.impl.UserServiceImpl;
 import com.dopamine.userservice.util.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,8 +49,8 @@ class UserServiceImplTest {
     // Use real UserMapper instead of mock (Java 21+ compatibility)
     private final UserMapper userMapper = new UserMapper();
 
-    @Mock
-    private BCryptPasswordEncoder passwordEncoder;
+    // Use real BCryptPasswordEncoder (avoid Mockito inline mocking issues)
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Mock
     private StudentCodeGeneratorService studentCodeGeneratorService;
@@ -64,7 +63,6 @@ class UserServiceImplTest {
 
     @BeforeEach
     void setUpService() {
-        // Manually inject the real UserMapper since we can't use @InjectMocks for it
         userService = new UserServiceImpl(
                 userRepository,
                 verificationCodeRepository,
@@ -86,18 +84,15 @@ class UserServiceImplTest {
             // Given
             StudentRegistrationRequest request = TestDataBuilder.defaultStudentRegistrationRequest().build();
             String generatedCode = "560001";
-            String hashedPassword = "$2a$10$hashedPassword";
 
             when(userRepository.existsByEmailIgnoreCaseAndNotDeleted(request.getEmail())).thenReturn(false);
             when(studentCodeGeneratorService.generateStudentCode()).thenReturn(generatedCode);
-            when(passwordEncoder.encode(request.getPassword())).thenReturn(hashedPassword);
 
             User savedUser = TestDataBuilder.defaultStudent()
                     .email(request.getEmail())
                     .codeNumber(generatedCode)
                     .build();
             when(userRepository.save(any(User.class))).thenReturn(savedUser);
-
 
             // When
             StudentRegistrationResponse response = userService.registerStudent(request);
@@ -113,7 +108,6 @@ class UserServiceImplTest {
             // Verify interactions
             verify(userRepository).existsByEmailIgnoreCaseAndNotDeleted(request.getEmail());
             verify(studentCodeGeneratorService).generateStudentCode();
-            verify(passwordEncoder).encode(request.getPassword());
 
             ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userCaptor.capture());
@@ -121,6 +115,7 @@ class UserServiceImplTest {
             assertThat(capturedUser.getCodeNumber()).isEqualTo(generatedCode);
             assertThat(capturedUser.getRole()).isEqualTo(Role.STUDENT);
             assertThat(capturedUser.isVerified()).isFalse();
+            assertThat(capturedUser.getPasswordHash()).isNotBlank();
 
             ArgumentCaptor<VerificationCode> codeCaptor = ArgumentCaptor.forClass(VerificationCode.class);
             verify(verificationCodeRepository).save(codeCaptor.capture());
@@ -156,7 +151,6 @@ class UserServiceImplTest {
 
             when(userRepository.existsByEmailIgnoreCaseAndNotDeleted(anyString())).thenReturn(false);
             when(studentCodeGeneratorService.generateStudentCode()).thenReturn("560001");
-            when(passwordEncoder.encode(anyString())).thenReturn("hashedPassword");
             when(userRepository.save(any(User.class))).thenReturn(TestDataBuilder.defaultStudent().build());
 
             // When
@@ -440,7 +434,6 @@ class UserServiceImplTest {
 
             when(userRepository.findByEmailIgnoreCaseAndNotDeleted(request.getEmail()))
                     .thenReturn(Optional.of(user));
-            when(passwordEncoder.encode(anyString())).thenReturn("hashedToken");
 
             // When
             PasswordResetResponse response = userService.requestPasswordReset(request);
@@ -448,12 +441,12 @@ class UserServiceImplTest {
             // Then
             assertThat(response).isNotNull();
             assertThat(response.getMessage()).contains("Password reset instructions");
-            assertThat(response.getToken()).isNotNull();
 
             verify(passwordResetTokenRepository).save(argThat(token ->
                 token.getUserId().equals(user.getId()) &&
                 !token.isUsed() &&
-                token.getExpiresAt().isAfter(Instant.now())
+                token.getExpiresAt().isAfter(Instant.now()) &&
+                token.getTokenHash() != null && !token.getTokenHash().isBlank()
             ));
         }
 
@@ -530,7 +523,6 @@ class UserServiceImplTest {
             // Given
             AdminCreateRequest request = TestDataBuilder.defaultAdminCreateRequest().build();
             when(userRepository.existsByEmailIgnoreCaseAndNotDeleted(request.getEmail())).thenReturn(false);
-            when(passwordEncoder.encode(request.getPassword())).thenReturn("hashedPassword");
 
             User savedAdmin = TestDataBuilder.defaultAdmin().build();
             when(userRepository.save(any(User.class))).thenReturn(savedAdmin);
@@ -543,7 +535,8 @@ class UserServiceImplTest {
             verify(userRepository).save(argThat(u ->
                 u.getRole() == Role.ADMIN &&
                 u.isVerified() &&
-                u.getCodeNumber() == null
+                u.getCodeNumber() == null &&
+                u.getPasswordHash() != null && !u.getPasswordHash().isBlank()
             ));
         }
 

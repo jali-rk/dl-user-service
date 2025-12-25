@@ -5,8 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
- * Request DTO for sending email via BFF notification service.
+ * Request DTO for sending email via BFF notification broadcast service.
+ * Matches the broadcast API structure.
  */
 @Data
 @NoArgsConstructor
@@ -15,28 +18,23 @@ import lombok.NoArgsConstructor;
 public class EmailNotificationRequest {
 
     /**
-     * Recipient email address.
+     * List of target user IDs to send the notification to.
      */
-    private String to;
+    private List<String> targetUserIds;
 
     /**
-     * Email subject.
+     * List of channels to send through (e.g., ["EMAIL"]).
      */
-    private String subject;
+    private List<String> channels;
 
     /**
-     * Email body (can be plain text or HTML).
+     * Email title/subject.
+     */
+    private String title;
+
+    /**
+     * Email body content.
      */
     private String body;
-
-    /**
-     * Optional: template name if BFF supports templating.
-     */
-    private String templateName;
-
-    /**
-     * Optional: template variables for dynamic content.
-     */
-    private java.util.Map<String, Object> templateVariables;
 }
 

@@ -41,28 +41,28 @@ public final class ApplicationConstants {
     public static final class Email {
         private Email() {}
 
-        // BFF notification endpoint
-        public static final String BFF_NOTIFICATION_ENDPOINT = "/internal/notifications/send-email";
+        // BFF broadcast notification endpoint
+        public static final String BFF_NOTIFICATION_ENDPOINT = "/admin/notifications/broadcast";
 
-        // Email subjects
-        public static final String SUBJECT_VERIFICATION_CODE = "Your DopamineLite Verification Code";
+        // Email subjects/titles
+        public static final String SUBJECT_VERIFICATION_CODE = "Test Email";
         public static final String SUBJECT_PASSWORD_RESET = "Reset Your DopamineLite Password";
         public static final String SUBJECT_RESEND_VERIFICATION_CODE = "Your New DopamineLite Verification Code";
 
-        // Email template names
+        // Email template names (deprecated - using direct body now)
         public static final String TEMPLATE_VERIFICATION_CODE = "verification-code";
         public static final String TEMPLATE_PASSWORD_RESET = "password-reset";
         public static final String TEMPLATE_RESEND_VERIFICATION_CODE = "resend-verification-code";
 
-        // Template variable keys
+        // Template variable keys (deprecated - using direct body now)
         public static final String VAR_CODE = "code";
         public static final String VAR_TOKEN = "token";
 
-        // Email body content
+        // Email body content - includes verification code
         public static final String BODY_VERIFICATION_CODE = """
                 Welcome to DopamineLite!
                 
-                Your verification code is(ඔබගේ සත්‍යාපන කේතය): %s
+                Your verification code is (ඔබගේ සත්‍යාපන කේතය): %s
                 
                 This code will expire in 5 minutes.
                 
@@ -88,7 +88,7 @@ public final class ApplicationConstants {
         public static final String BODY_RESEND_VERIFICATION_CODE = """
                 You have requested a new verification code.
                 
-                Your new verification code is: %s
+                Your new verification code is (ඔබගේ නව සත්‍යාපන කේතය): %s
                 
                 This code will expire in 5 minutes.
                 
