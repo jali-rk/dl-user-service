@@ -1,0 +1,725 @@
+openapi: 3.0.3
+info:
+  title: DopamineLite User Service API
+  version: "1.0.0"
+  description: |
+    User Service (microservice) for DopamineLite.
+    - Owns users (students, admins, main admins)
+    - Handles registration, verification code, credentials, profile data
+    - Exposed only to BFF (no direct frontend calls)
+
+servers:
+  - url: https://user-service.internal/api/v1
+
+tags:
+  - name: Students
+  - name: Admins
+  - name: AuthInternal
+
+security:
+  - serviceAuth: []
+
+components:
+  securitySchemes:
+    serviceAuth:
+      type: apiKey
+      in: header
+      name: X-Service-Token
+
+  parameters:
+    PaginationLimit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    PaginationOffset:
+      name: offset
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+  schemas:
+    ErrorObject:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    Role:
+      type: string
+      enum: [STUDENT, ADMIN, MAIN_ADMIN]
+
+    UserStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, BLOCKED]
+
+    User:
+      type: object
+      description: "Internal user model"
+      properties:
+        id:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        email:
+          type: string
+          format: email
+        whatsappNumber:
+          type: string
+        school:
+          type: string
+          nullable: true
+        address:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        codeNumber:
+          type: string
+          nullable: true
+          description: "Sequential code for students (e.g. 1001, 1002). Null for admins."
+        isVerified:
+          type: boolean
+        passwordHash:
+          type: string
+          description: "Hashed password (never exposed to BFF in most responses)"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - fullName
+        - email
+        - whatsappNumber
+        - address
+        - role
+        - status
+        - isVerified
+        - createdAt
+        - updatedAt
+
+    UserPublicView:
+      type: object
+      description: "Shape returned to BFF (no passwordHash). Used to map to BFF UserSummary / StudentProfile."
+      properties:
+        id:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        email:
+          type: string
+          format: email
+        whatsappNumber:
+          type: string
+        school:
+          type: string
+          nullable: true
+        address:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        codeNumber:
+          type: string
+          nullable: true
+        isVerified:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - fullName
+        - email
+        - whatsappNumber
+        - address
+        - role
+        - status
+        - isVerified
+        - createdAt
+        - updatedAt
+
+    StudentRegistrationRequest:
+      type: object
+      description: "Payload BFF sends when a student registers (/auth/register)."
+      properties:
+        fullName:
+          type: string
+        email:
+          type: string
+          format: email
+        whatsappNumber:
+          type: string
+        school:
+          type: string
+          nullable: true
+        address:
+          type: string
+        password:
+          type: string
+          format: password
+      required:
+        - fullName
+        - email
+        - whatsappNumber
+        - address
+        - password
+
+    StudentRegistrationResponse:
+      type: object
+      description: |
+        Internal response to BFF when creating a student.
+        User Service:
+          - Creates STUDENT user
+          - Allocates next codeNumber (1001, 1002, ...)
+          - Generates and stores verification code (not returned here)
+      properties:
+        user:
+          $ref: '#/components/schemas/UserPublicView'
+        verificationChannel:
+          type: string
+          enum: [EMAIL]
+          nullable: true
+          description: "Channel used for verification, helps BFF decide notification behavior."
+        verificationCodeGenerated:
+          type: boolean
+      required:
+        - user
+        - verificationCodeGenerated
+
+    VerifyStudentCodeRequest:
+      type: object
+      description: "Used by BFF /auth/verify-code to activate student."
+      properties:
+        email:
+          type: string
+          format: email
+        code:
+          type: string
+          description: "6-digit verification code student received via email."
+      required:
+        - email
+        - code
+
+    VerifyStudentCodeResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserPublicView'
+      required:
+        - user
+
+    CredentialsValidationRequest:
+      type: object
+      description: "BFF uses this when handling /auth/login to validate credentials."
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+      required:
+        - email
+        - password
+
+    CredentialsValidationResponse:
+      type: object
+      description: "Returned when credentials are valid. BFF then issues JWT."
+      properties:
+        user:
+          $ref: '#/components/schemas/UserPublicView'
+      required:
+        - user
+
+    StudentUpdateRequest:
+      type: object
+      description: |
+        Partial update for student profile.
+        BFF enforces date-window rule (1–5 and 26–30/31); User Service just updates.
+      properties:
+        fullName:
+          type: string
+        email:
+          type: string
+        whatsappNumber:
+          type: string
+        school:
+          type: string
+          nullable: true
+        address:
+          type: string
+
+    AdminCreateRequest:
+      type: object
+      description: "Used by BFF /admin/admins to create ADMIN or MAIN_ADMIN."
+      properties:
+        fullName:
+          type: string
+        email:
+          type: string
+          format: email
+        whatsappNumber:
+          type: string
+        password:
+          type: string
+          format: password
+        role:
+          type: string
+          enum: [ADMIN, MAIN_ADMIN]
+      required:
+        - fullName
+        - email
+        - whatsappNumber
+        - password
+        - role
+
+    AdminUpdateRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+        whatsappNumber:
+          type: string
+        status:
+          $ref: '#/components/schemas/UserStatus'
+
+paths:
+  #################################
+  # STUDENT REGISTRATION & PROFILE
+  #################################
+  /students/registrations:
+    post:
+      tags: [Students]
+      summary: Register a new student
+      description: |
+        Used by BFF `/auth/register`.
+
+        Responsibilities:
+        - Create a new STUDENT user with status=ACTIVE, isVerified=false
+        - Allocate next sequential `codeNumber` (e.g. 1001, 1002)
+        - Generate a verification code and store it internally
+        - Optionally trigger internal event for Notification Service (email with code)
+      security:
+        - serviceAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentRegistrationRequest'
+      responses:
+        '201':
+          description: Student registration created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentRegistrationResponse'
+        '400':
+          description: Validation error or email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorObject'
+
+  /students/verify-code:
+    post:
+      tags: [Students]
+      summary: Verify student using code
+      description: |
+        Used by BFF `/auth/verify-code`.
+
+        - Validates verification code against stored entry.
+        - Marks user as `isVerified=true` when successful.
+      security:
+        - serviceAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyStudentCodeRequest'
+      responses:
+        '200':
+          description: Code verified and student activated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyStudentCodeResponse'
+        '400':
+          description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorObject'
+
+  /students/{studentId}:
+    get:
+      tags: [Students]
+      summary: Get student by ID
+      description: |
+        Used by BFF to:
+        - Build `/auth/me` response for STUDENT
+        - Build `/students/me/profile` response
+
+        BFF may add computed flags like `canEditProfile`.
+      security:
+        - serviceAuth: []
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Student found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublicView'
+        '404':
+          description: Student not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorObject'
+    patch:
+      tags: [Students]
+      summary: Update student profile
+      description: |
+        Called by BFF for `/students/me/profile` PATCH after it enforces
+        the edit-window rule defined in the BRD.
+
+        Only updates profile fields; role/status/password unaffected here.
+      security:
+        - serviceAuth: []
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentUpdateRequest'
+      responses:
+        '200':
+          description: Student profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublicView'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorObject'
+        '404':
+          description: Student not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorObject'
+
+  /students:
+    get:
+      tags: [Students]
+      summary: Search students
+      description: |
+        Used by BFF `/admin/students/search` and also indirectly by
+        payments/issue modules when they need student details.
+
+        Filters are additive (AND).
+      security:
+        - serviceAuth: []
+      parameters:
+        - name: email
+          in: query
+          schema:
+            type: string
+        - name: name
+          in: query
+          schema:
+            type: string
+            description: "Partial match on fullName"
+        - name: whatsappNumber
+          in: query
+          schema:
+            type: string
+        - name: codeNumber
+          in: query
+          schema:
+            type: string
+        - name: isVerified
+          in: query
+          schema:
+            type: boolean
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserStatus'
+        - $ref: '#/components/parameters/PaginationLimit'
+        - $ref: '#/components/parameters/PaginationOffset'
+      responses:
+        '200':
+          description: Matching students
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserPublicView'
+                  total:
+                    type: integer
+
+  #################################
+  # ADMINS & MAIN ADMINS
+  #################################
+  /admins:
+    post:
+      tags: [Admins]
+      summary: Create an admin or main admin
+      description: |
+        Used by BFF `/admin/admins` (MAIN_ADMIN only at the BFF level).
+
+        Creates a user with role ADMIN or MAIN_ADMIN.
+      security:
+        - serviceAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateRequest'
+      responses:
+        '201':
+          description: Admin created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublicView'
+        '400':
+          description: Validation error / duplicate email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorObject'
+
+    get:
+      tags: [Admins]
+      summary: List/search admins
+      description: |
+        Internal listing of admins/main admins. BFF may use this for:
+        - Showing admin directory
+        - Assigning issues
+      security:
+        - serviceAuth: []
+      parameters:
+        - name: email
+          in: query
+          schema:
+            type: string
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: role
+          in: query
+          schema:
+            $ref: '#/components/schemas/Role'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserStatus'
+        - $ref: '#/components/parameters/PaginationLimit'
+        - $ref: '#/components/parameters/PaginationOffset'
+      responses:
+        '200':
+          description: Matching admins
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserPublicView'
+                  total:
+                    type: integer
+
+  /admins/{adminId}:
+    patch:
+      tags: [Admins]
+      summary: Update admin details
+      description: |
+        Internal admin update (e.g. name, WhatsApp, status).
+        BFF enforces role-based access (e.g. only MAIN_ADMIN can update MAIN_ADMIN).
+      security:
+        - serviceAuth: []
+      parameters:
+        - name: adminId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateRequest'
+      responses:
+        '200':
+          description: Admin updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublicView'
+        '404':
+          description: Admin not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorObject'
+
+  #################################
+  # GENERIC USER ACCESS (FOR BFF /auth/me)
+  #################################
+  /users/{userId}:
+    get:
+      tags: [AuthInternal]
+      summary: Get user (student or admin) by ID
+      description: |
+        Used by BFF `/auth/me` for all roles.
+        BFF decorates this with additional computed fields if needed.
+      security:
+        - serviceAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublicView'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorObject'
+
+  /users/by-email:
+    get:
+      tags: [AuthInternal]
+      summary: Lookup user by email
+      description: |
+        Convenience endpoint used by BFF when needed (e.g., some admin tools).
+      security:
+        - serviceAuth: []
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublicView'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorObject'
+
+  #################################
+  # INTERNAL AUTH (CREDENTIAL VALIDATION)
+  #################################
+  /internal/auth/validate-credentials:
+    post:
+      tags: [AuthInternal]
+      summary: Validate email/password credentials
+      description: |
+        Used by BFF `/auth/login`.
+
+        - Verifies password against stored hash.
+        - Ensures user is ACTIVE and (for students) isVerified=true.
+        - Returns full user object on success.
+        - Returns 401 on invalid credentials or blocked user.
+
+        BFF uses this to decide whether to issue JWT access/refresh tokens.
+      security:
+        - serviceAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialsValidationRequest'
+      responses:
+        '200':
+          description: Credentials valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialsValidationResponse'
+        '401':
+          description: Invalid credentials or user not allowed to login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorObject'

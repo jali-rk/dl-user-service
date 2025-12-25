@@ -1,6 +1,7 @@
 package com.dopamine.userservice.mapper;
 
 import com.dopamine.userservice.domain.User;
+import com.dopamine.userservice.dto.UserPublicBatchView;
 import com.dopamine.userservice.dto.UserPublicView;
 import org.springframework.stereotype.Component;
 
@@ -33,6 +34,24 @@ public class UserMapper {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .lastLoginAt(user.getLastLoginAt())
+                .build();
+    }
+
+    /**
+     * Convert User entity to UserPublicBatchView DTO.
+     * Contains only minimal fields required by batch endpoint.
+     */
+    public UserPublicBatchView toPublicBatchView(User user) {
+        if (user == null) {
+            return null;
+        }
+
+        return UserPublicBatchView.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .whatsappNumber(user.getWhatsappNumber())
+                .email(user.getEmail())
+                .codeNumber(user.getCodeNumber())
                 .build();
     }
 }

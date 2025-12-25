@@ -28,8 +28,15 @@ public class PasswordResetToken {
     private UUID userId;
 
     /**
-     * Hash of the password reset token.
-     * The raw token is sent to the user via email, only the hash is stored.
+     * Public identifier for this token (safe to embed in an email link).
+     * This enables deterministic lookup without storing the raw secret.
+     */
+    @Column(name = "token_id", nullable = false, unique = true)
+    private UUID tokenId;
+
+    /**
+     * Hash of the password reset token secret.
+     * The raw secret is sent to the user via email, only the hash is stored.
      */
     @Column(name = "token_hash", nullable = false)
     private String tokenHash;
@@ -70,4 +77,3 @@ public class PasswordResetToken {
         this.usedAt = Instant.now();
     }
 }
-

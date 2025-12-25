@@ -8,6 +8,7 @@ import com.dopamine.userservice.mapper.UserMapper;
 import com.dopamine.userservice.repository.PasswordResetTokenRepository;
 import com.dopamine.userservice.repository.UserRepository;
 import com.dopamine.userservice.repository.VerificationCodeRepository;
+import com.dopamine.userservice.service.EmailNotificationService;
 import com.dopamine.userservice.service.StudentCodeGeneratorService;
 import com.dopamine.userservice.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final BCryptPasswordEncoder passwordEncoder;
     private final StudentCodeGeneratorService studentCodeGeneratorService;
+    private final EmailNotificationService emailNotificationService;
 
     public UserServiceImpl(
             UserRepository userRepository,
@@ -40,7 +42,8 @@ public class UserServiceImpl implements UserService {
             PasswordResetTokenRepository passwordResetTokenRepository,
             UserMapper userMapper,
             BCryptPasswordEncoder passwordEncoder,
-            StudentCodeGeneratorService studentCodeGeneratorService
+            StudentCodeGeneratorService studentCodeGeneratorService,
+            EmailNotificationService emailNotificationService
     ) {
         this.userRepository = userRepository;
         this.verificationCodeRepository = verificationCodeRepository;
@@ -48,6 +51,7 @@ public class UserServiceImpl implements UserService {
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.studentCodeGeneratorService = studentCodeGeneratorService;
+        this.emailNotificationService = emailNotificationService;
     }
 
     @Override
@@ -95,9 +99,8 @@ public class UserServiceImpl implements UserService {
         verificationCodeRepository.save(verificationCode);
         log.info("Created verification code for user: {}", user.getId());
 
-        // TODO: Send notification with registration number to student's email
-        // For now, just log the notification intent
-        log.info("TODO: Send verification code {} to email {}", registrationNumber, user.getEmail());
+        // Send verification code email via BFF
+        emailNotificationService.sendVerificationCodeEmail(user.getEmail(), registrationNumber);
 
         return StudentRegistrationResponse.builder()
                 .user(userMapper.toPublicView(user))
@@ -212,8 +215,8 @@ public class UserServiceImpl implements UserService {
         verificationCodeRepository.save(verificationCodeEntity);
         log.info("Created new verification code for user: {}", user.getId());
 
-        // TODO: Send notification with verification code to student's email
-        log.info("TODO: Send verification code {} to email {}", newStudentCode, user.getEmail());
+        // Send resend verification code email via BFF
+        emailNotificationService.sendResendVerificationCodeEmail(user.getEmail(), newStudentCode);
 
         return ResendVerificationCodeResponse.builder()
                 .success(true)
@@ -438,14 +441,17 @@ public class UserServiceImpl implements UserService {
                     .orElse(null);
 
             if (user != null) {
-                // Generate random token
-                String rawToken = UUID.randomUUID().toString() + "-" + UUID.randomUUID().toString();
-                String tokenHash = passwordEncoder.encode(rawToken);
+                // Generate tokenId (lookup key) + strong random secret (sent to user)
+                UUID tokenId = UUID.randomUUID();
+                String secret = UUID.randomUUID() + "-" + UUID.randomUUID();
 
-                // Create password reset token
+                // Store only a hash of the secret, never the secret itself
+                String secretHash = passwordEncoder.encode(secret);
+
                 PasswordResetToken token = PasswordResetToken.builder()
                         .userId(user.getId())
-                        .tokenHash(tokenHash)
+                        .tokenId(tokenId)
+                        .tokenHash(secretHash)
                         .expiresAt(Instant.now().plus(ApplicationConstants.PasswordReset.PASSWORD_RESET_TOKEN_EXPIRY))
                         .used(false)
                         .build();
@@ -453,12 +459,16 @@ public class UserServiceImpl implements UserService {
                 passwordResetTokenRepository.save(token);
                 log.info("Created password reset token for user: {}", user.getId());
 
-                // TODO: Send email with reset link containing rawToken
-                log.info("TODO: Send password reset email to {} with token", user.getEmail());
+                // Combined token is convenient for email links: {tokenId}.{secret}
+                String combinedToken = tokenId + "." + secret;
+
+                // Note: BFF is responsible for sending the password reset email
+                // Userservice only generates and returns the token
+                log.info("Generated password reset token for user: {}, BFF will handle email sending", user.getId());
 
                 return PasswordResetResponse.builder()
                         .message("Password reset instructions have been sent to your email")
-                        .token(rawToken) // Return raw token for BFF to send via email
+                        .token(combinedToken)
                         .build();
             } else {
                 log.info("Password reset requested for non-existent email: {}", request.getEmail());
@@ -479,25 +489,35 @@ public class UserServiceImpl implements UserService {
     public void confirmPasswordReset(PasswordResetConfirmRequest request) {
         log.info("Confirming password reset with token");
 
-        // Hash the provided token to match against stored hash
-        // Note: We need to find by token differently since BCrypt generates different hashes
-        // Better approach: Store token ID separately and use that for lookup
-        // For now, we'll iterate through recent tokens (not ideal for production)
+        // Expected token format: {tokenId}.{secret}
+        String token = request.getToken();
+        String[] parts = token != null ? token.split("\\.", 2) : new String[0];
+        if (parts.length != 2) {
+            throw new InvalidPasswordResetTokenException("Invalid or expired password reset token");
+        }
 
-        // TODO: Improve token lookup strategy - consider storing token ID separately
-        String tokenHash = passwordEncoder.encode(request.getToken());
+        UUID tokenId;
+        try {
+            tokenId = UUID.fromString(parts[0]);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidPasswordResetTokenException("Invalid or expired password reset token");
+        }
 
-        PasswordResetToken token = passwordResetTokenRepository.findValidByTokenHash(tokenHash, Instant.now())
+        String secret = parts[1];
+
+        // Lookup token deterministically by tokenId (cannot reliably lookup by BCrypt hash)
+        PasswordResetToken tokenEntity = passwordResetTokenRepository
+                .findValidByTokenId(tokenId, Instant.now())
                 .orElseThrow(() -> new InvalidPasswordResetTokenException("Invalid or expired password reset token"));
 
-        // Verify token is valid
-        if (!token.isValid()) {
-            log.warn("Invalid password reset token attempt");
+        // Verify secret matches stored hash
+        if (!passwordEncoder.matches(secret, tokenEntity.getTokenHash())) {
+            log.warn("Invalid password reset token secret attempt");
             throw new InvalidPasswordResetTokenException("Invalid or expired password reset token");
         }
 
         // Find user
-        User user = userRepository.findByIdAndNotDeleted(token.getUserId())
+        User user = userRepository.findByIdAndNotDeleted(tokenEntity.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         // Update password
@@ -505,10 +525,32 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
         // Mark token as used
-        token.markAsUsed();
-        passwordResetTokenRepository.save(token);
+        tokenEntity.markAsUsed();
+        passwordResetTokenRepository.save(tokenEntity);
 
         log.info("Successfully reset password for user: {}", user.getId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserPublicBatchView> findUsersByIdsPublicData(List<UUID> userIds) {
+        log.debug("Fetching public batch data for {} users", userIds.size());
+
+        if (userIds.isEmpty()) {
+            log.debug("Empty user IDs list provided, returning empty result");
+            return List.of();
+        }
+
+        // Fetch users in bulk using single query with WHERE IN clause
+        // Repository query automatically filters: status = ACTIVE AND isVerified = true
+        List<User> users = userRepository.findByIdsAndNotDeleted(userIds);
+
+        log.info("Found {} ACTIVE and verified users out of {} requested IDs", users.size(), userIds.size());
+
+        // Map to minimal batch view DTOs (only id, fullName, whatsappNumber, email, codeNumber)
+        return users.stream()
+                .map(userMapper::toPublicBatchView)
+                .collect(Collectors.toList());
     }
 }
 

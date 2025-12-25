@@ -33,5 +33,11 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
      */
     @Query("SELECT prt FROM PasswordResetToken prt WHERE prt.userId = :userId ORDER BY prt.createdAt DESC LIMIT 1")
     Optional<PasswordResetToken> findLatestByUserId(@Param("userId") UUID userId);
-}
 
+    /**
+     * Find a valid (not used, not expired) password reset token by tokenId.
+     */
+    @Query("SELECT prt FROM PasswordResetToken prt WHERE prt.tokenId = :tokenId " +
+            "AND prt.used = false AND prt.expiresAt > :now")
+    Optional<PasswordResetToken> findValidByTokenId(@Param("tokenId") UUID tokenId, @Param("now") Instant now);
+}

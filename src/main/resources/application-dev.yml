@@ -36,6 +36,13 @@ user:
   service:
     internalToken: ${INTERNAL_SERVICE_TOKEN:change-me-in-production}
 
+bff:
+  service:
+    baseUrl: ${BFF_SERVICE_URL:https://dev-api.gingerbreaddopamine.com}
+    internalToken: ${INTERNAL_SERVICE_TOKEN:change-me-in-production}
+    connectTimeout: 5
+    readTimeout: 10
+
 verification:
   code:
     expiry:

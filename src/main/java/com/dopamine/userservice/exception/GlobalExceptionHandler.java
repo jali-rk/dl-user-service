@@ -99,6 +99,17 @@ public class GlobalExceptionHandler {
         });
 
         log.warn("Validation errors: {}", errors);
+
+        // Special handling for batch endpoint size validation
+        if (errors.containsKey("userIds") &&
+            (errors.get("userIds").contains("1000") || errors.get("userIds").contains("between"))) {
+            ErrorObject error = ErrorObject.builder()
+                    .code("BATCH_SIZE_EXCEEDED")
+                    .message("Maximum 1000 user IDs allowed per request")
+                    .build();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+
         ErrorObject error = ErrorObject.builder()
                 .code("VALIDATION_ERROR")
                 .message("Validation failed")

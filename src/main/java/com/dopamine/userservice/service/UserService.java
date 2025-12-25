@@ -1,8 +1,8 @@
 package com.dopamine.userservice.service;
 
-import com.dopamine.userservice.dto.*;
 import com.dopamine.userservice.domain.Role;
 import com.dopamine.userservice.domain.UserStatus;
+import com.dopamine.userservice.dto.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -86,5 +86,15 @@ public interface UserService {
      * Confirm password reset with token.
      */
     void confirmPasswordReset(PasswordResetConfirmRequest request);
+
+    /**
+     * Get public batch data for multiple users by their IDs.
+     * Returns only users that exist, are not deleted, have status = ACTIVE, and isVerified = true.
+     * Returns minimal fields (id, fullName, whatsappNumber, email, codeNumber) as required by BFF.
+     *
+     * @param userIds list of user UUIDs (max 1000)
+     * @return list of UserPublicBatchView objects for found users matching criteria
+     */
+    List<UserPublicBatchView> findUsersByIdsPublicData(List<UUID> userIds);
 }
 

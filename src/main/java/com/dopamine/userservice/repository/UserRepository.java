@@ -65,6 +65,19 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      */
     @Query(value = "SELECT nextval('student_code_number_seq')", nativeQuery = true)
     Long getNextStudentCodeNumber();
+
+    /**
+     * Find all users by IDs in bulk, excluding soft-deleted users.
+     * Efficient for batch operations with up to 1000 IDs.
+     *
+     * IMPORTANT: Filters by status = ACTIVE and isVerified = true.
+     * This is specifically for the batch public endpoint used by BFF.
+     */
+    @Query("SELECT u FROM User u WHERE u.id IN :ids " +
+           "AND u.deletedAt IS NULL " +
+           "AND u.status = com.dopamine.userservice.domain.UserStatus.ACTIVE " +
+           "AND u.isVerified = true")
+    List<User> findByIdsAndNotDeleted(@Param("ids") List<UUID> ids);
 }
 
 
