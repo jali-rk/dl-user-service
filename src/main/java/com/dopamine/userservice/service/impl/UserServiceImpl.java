@@ -22,7 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -491,7 +493,12 @@ public class UserServiceImpl implements UserService {
             if (user != null) {
                 // Generate tokenId (lookup key) + strong random secret (sent to user)
                 UUID tokenId = UUID.randomUUID();
-                String secret = UUID.randomUUID() + "-" + UUID.randomUUID();
+
+                // BCrypt can only accept up to 72 bytes, so keep the secret short.
+                // 32 random bytes -> ~43 chars base64url (well under 72)
+                byte[] secretBytes = new byte[32];
+                new SecureRandom().nextBytes(secretBytes);
+                String secret = Base64.getUrlEncoder().withoutPadding().encodeToString(secretBytes);
 
                 // Store only a hash of the secret, never the secret itself
                 String secretHash = passwordEncoder.encode(secret);
@@ -508,9 +515,8 @@ public class UserServiceImpl implements UserService {
                 log.info("Created password reset token for user: {}", user.getId());
 
                 // Combined token is convenient for email links: {tokenId}.{secret}
+                // Note: BFF is responsible for sending the password reset email.
                 String combinedToken = tokenId + "." + secret;
-
-                log.info("Generated password reset token for user: {}, BFF will handle email sending", user.getId());
 
                 return PasswordResetResponse.builder()
                         .message("Password reset instructions have been sent to your email")
