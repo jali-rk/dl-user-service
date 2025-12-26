@@ -19,6 +19,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
 import java.util.List;
@@ -103,8 +105,15 @@ public class UserServiceImpl implements UserService {
         verificationCodeRepository.save(verificationCode);
         log.info("Created verification code for user: {}", user.getId());
 
-        // Send verification code email via BFF
-        emailNotificationService.sendVerificationCodeEmail(user.getId(), registrationNumber);
+        // Send verification code email via BFF AFTER transaction commit
+        UUID userId = user.getId();
+        String codeToSend = registrationNumber;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                emailNotificationService.sendVerificationCodeEmail(userId, codeToSend);
+            }
+        });
 
         return StudentRegistrationResponse.builder()
                 .user(userMapper.toPublicView(user))
@@ -219,8 +228,15 @@ public class UserServiceImpl implements UserService {
         verificationCodeRepository.save(verificationCodeEntity);
         log.info("Created new verification code for user: {}", user.getId());
 
-        // Send resend verification code email via BFF
-        emailNotificationService.sendResendVerificationCodeEmail(user.getId(), newStudentCode);
+        // Send resend verification code email via BFF AFTER transaction commit
+        UUID userId = user.getId();
+        String codeToSend = newStudentCode;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                emailNotificationService.sendResendVerificationCodeEmail(userId, codeToSend);
+            }
+        });
 
         return ResendVerificationCodeResponse.builder()
                 .success(true)
