@@ -106,5 +106,9 @@ public interface UserService {
      * @return list of UserPublicBatchView objects for found users matching criteria
      */
     List<UserPublicBatchView> findUsersByIdsPublicData(List<UUID> userIds);
-}
 
+    /**
+     * Soft delete an admin (ADMIN or MAIN_ADMIN) by ID.
+     */
+    void deleteAdmin(UUID adminId);
+}

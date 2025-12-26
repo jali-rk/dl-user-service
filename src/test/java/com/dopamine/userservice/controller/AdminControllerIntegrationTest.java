@@ -188,5 +188,40 @@ class AdminControllerIntegrationTest extends BaseIntegrationTest {
                 .content(invalidJson))
                 .andExpect(status().isBadRequest());
     }
-}
 
+    @Test
+    @DisplayName("Should delete admin (soft delete) and return 204")
+    void shouldDeleteAdmin() throws Exception {
+        // Given
+        User admin = TestDataBuilder.defaultAdmin()
+                .email("delete@example.com")
+                .build();
+        admin = userRepository.save(admin);
+
+        // When/Then - delete
+        mockMvc.perform(delete("/admins/{adminId}", admin.getId())
+                .header("X-Service-Token", serviceToken))
+                .andExpect(status().isNoContent());
+
+        // Then - should not be retrievable anymore
+        mockMvc.perform(get("/admins/{adminId}", admin.getId())
+                .header("X-Service-Token", serviceToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
+
+        // And - verify soft delete persisted
+        User deleted = userRepository.findById(admin.getId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(deleted.getDeletedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Should return 404 when deleting non-existent admin")
+    void shouldReturn404WhenDeletingAdminNotFound() throws Exception {
+        String nonExistentId = "550e8400-e29b-41d4-a716-446655440000";
+
+        mockMvc.perform(delete("/admins/{adminId}", nonExistentId)
+                .header("X-Service-Token", serviceToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
+    }
+}

@@ -94,5 +94,15 @@ public class AdminController {
         }
 
     }
-}
 
+    /**
+     * Delete (soft delete) an admin.
+     * DELETE /admins/{adminId}
+     */
+    @DeleteMapping("/{adminId}")
+    public ResponseEntity<Void> deleteAdmin(@PathVariable UUID adminId) {
+        log.info("Delete admin request for ID: {}", adminId);
+        userService.deleteAdmin(adminId);
+        return ResponseEntity.noContent().build();
+    }
+}

@@ -186,10 +186,7 @@ public class UserServiceImpl implements UserService {
         // Check if user is already verified
         if (user.isVerified()) {
             log.info("User {} is already verified, no need to resend code", user.getId());
-            return ResendVerificationCodeResponse.builder()
-                    .success(false)
-                    .message("User is already verified")
-                    .build();
+            return new ResendVerificationCodeResponse(false, "User is already verified", null);
         }
 
         // Check if user is a student
@@ -240,11 +237,7 @@ public class UserServiceImpl implements UserService {
             }
         });
 
-        return ResendVerificationCodeResponse.builder()
-                .success(true)
-                .message("Verification code has been resent")
-                .code(newStudentCode)
-                .build();
+        return new ResendVerificationCodeResponse(true, "Verification code has been resent", newStudentCode);
     }
 
     @Override
@@ -604,5 +597,21 @@ public class UserServiceImpl implements UserService {
                 .map(userMapper::toPublicBatchView)
                 .collect(Collectors.toList());
     }
-}
 
+    @Override
+    @Transactional
+    public void deleteAdmin(UUID adminId) {
+        log.info("Deleting admin: {}", adminId);
+
+        User user = userRepository.findByIdAndNotDeleted(adminId)
+                .orElseThrow(() -> new UserNotFoundException("Admin not found with ID: " + adminId));
+
+        if (!user.isAdmin()) {
+            throw new UserNotFoundException("Admin not found with ID: " + adminId);
+        }
+
+        user.softDelete();
+        userRepository.save(user);
+        log.info("Soft deleted admin: {}", adminId);
+    }
+}
