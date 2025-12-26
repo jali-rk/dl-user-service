@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.UUID;
+
 /**
  * Implementation of EmailNotificationService.
  * Sends emails by calling BFF's broadcast notification endpoint.
@@ -67,13 +69,11 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
     }
 
     @Override
-    public void sendVerificationCodeEmail(String email, String code) {
-        log.info("Sending verification code email to: {}", email);
+    public void sendVerificationCodeEmail(UUID userId, String code) {
+        log.info("Sending verification code email to userId: {}", userId);
 
-        // Note: Using email as targetUserId since user might not have UUID yet during registration
-        // The BFF broadcast service should handle email-based targeting
         EmailNotificationRequest request = EmailNotificationRequest.builder()
-                .targetUserIds(java.util.List.of(email))
+                .targetUserIds(java.util.List.of(userId.toString()))
                 .channels(java.util.List.of("EMAIL"))
                 .title(ApplicationConstants.Email.SUBJECT_VERIFICATION_CODE)
                 .body(ApplicationConstants.Email.BODY_VERIFICATION_CODE.formatted(code))
@@ -83,11 +83,11 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
     }
 
     @Override
-    public void sendResendVerificationCodeEmail(String email, String code) {
-        log.info("Sending resend verification code email to: {}", email);
+    public void sendResendVerificationCodeEmail(UUID userId, String code) {
+        log.info("Sending resend verification code email to userId: {}", userId);
 
         EmailNotificationRequest request = EmailNotificationRequest.builder()
-                .targetUserIds(java.util.List.of(email))
+                .targetUserIds(java.util.List.of(userId.toString()))
                 .channels(java.util.List.of("EMAIL"))
                 .title(ApplicationConstants.Email.SUBJECT_RESEND_VERIFICATION_CODE)
                 .body(ApplicationConstants.Email.BODY_RESEND_VERIFICATION_CODE.formatted(code))

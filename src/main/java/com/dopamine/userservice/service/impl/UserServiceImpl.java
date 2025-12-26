@@ -104,7 +104,7 @@ public class UserServiceImpl implements UserService {
         log.info("Created verification code for user: {}", user.getId());
 
         // Send verification code email via BFF
-        emailNotificationService.sendVerificationCodeEmail(user.getEmail(), registrationNumber);
+        emailNotificationService.sendVerificationCodeEmail(user.getId(), registrationNumber);
 
         return StudentRegistrationResponse.builder()
                 .user(userMapper.toPublicView(user))
@@ -220,7 +220,7 @@ public class UserServiceImpl implements UserService {
         log.info("Created new verification code for user: {}", user.getId());
 
         // Send resend verification code email via BFF
-        emailNotificationService.sendResendVerificationCodeEmail(user.getEmail(), newStudentCode);
+        emailNotificationService.sendResendVerificationCodeEmail(user.getId(), newStudentCode);
 
         return ResendVerificationCodeResponse.builder()
                 .success(true)
@@ -494,8 +494,6 @@ public class UserServiceImpl implements UserService {
                 // Combined token is convenient for email links: {tokenId}.{secret}
                 String combinedToken = tokenId + "." + secret;
 
-                // Note: BFF is responsible for sending the password reset email
-                // Userservice only generates and returns the token
                 log.info("Generated password reset token for user: {}, BFF will handle email sending", user.getId());
 
                 return PasswordResetResponse.builder()
