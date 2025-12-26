@@ -70,7 +70,9 @@ class GetAllStudentsIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.total", is(5)))
                 .andExpect(jsonPath("$.items[*].role", everyItem(is("STUDENT"))))
                 .andExpect(jsonPath("$.items[*].isVerified", everyItem(is(true))))
-                .andExpect(jsonPath("$.items[*].nic", everyItem(notNullValue())));
+                .andExpect(jsonPath("$.items[*].nic", everyItem(notNullValue())))
+                .andExpect(jsonPath("$.items[*].school", everyItem(notNullValue())))
+                .andExpect(jsonPath("$.items[*].address", everyItem(notNullValue())));
     }
 
     @Test
@@ -425,3 +427,4 @@ class GetAllStudentsIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.total", is(2)));
     }
 }
+

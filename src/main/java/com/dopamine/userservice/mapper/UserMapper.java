@@ -87,6 +87,8 @@ public class UserMapper {
                 .registrationNumber(registrationNumber)
                 .createdAt(user.getCreatedAt())
                 .nic(user.getNic())
+                .school(user.getSchool())
+                .address(user.getAddress())
                 .build();
     }
 }

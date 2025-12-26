@@ -66,4 +66,14 @@ public class StudentListItem {
      * National Identity Card number (NIC).
      */
     private String nic;
+
+    /**
+     * School name.
+     */
+    private String school;
+
+    /**
+     * Address.
+     */
+    private String address;
 }
