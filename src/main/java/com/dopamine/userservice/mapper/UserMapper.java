@@ -35,6 +35,7 @@ public class UserMapper {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .lastLoginAt(user.getLastLoginAt())
+                .nic(user.getNic())
                 .build();
     }
 
@@ -85,7 +86,7 @@ public class UserMapper {
                 .isVerified(user.isVerified())
                 .registrationNumber(registrationNumber)
                 .createdAt(user.getCreatedAt())
+                .nic(user.getNic())
                 .build();
     }
 }
-

@@ -22,6 +22,7 @@ public class TestDataBuilder {
                 .whatsappNumber("+94771234567")
                 .school("Royal College")
                 .address("123 Main St, Colombo")
+                .nic("200012345678")
                 .role(Role.STUDENT)
                 .status(UserStatus.ACTIVE)
                 .codeNumber("1001")
@@ -69,7 +70,8 @@ public class TestDataBuilder {
                 .whatsappNumber("+94771234568")
                 .school("Royal College")
                 .address("456 Side St, Colombo")
-                .password("SecurePassword123");
+                .password("SecurePassword123")
+                .nic("200012345678");
     }
 
     public static AdminCreateRequest.AdminCreateRequestBuilder defaultAdminCreateRequest() {
@@ -159,4 +161,3 @@ public class TestDataBuilder {
                 .usedAt(Instant.now());
     }
 }
-

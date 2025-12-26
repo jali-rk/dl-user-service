@@ -32,6 +32,5 @@ public class UserPublicView {
     private Instant createdAt;
     private Instant updatedAt;
     private Instant lastLoginAt;
+    private String nic;
 }
-
-

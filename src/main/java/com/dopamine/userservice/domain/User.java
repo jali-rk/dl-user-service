@@ -81,6 +81,12 @@ public class User {
     private Instant deletedAt;
 
     /**
+     * National Identity Card number (NIC). Required for students during registration.
+     */
+    @Column(name = "nic", unique = true)
+    private String nic;
+
+    /**
      * Check if this user is a student.
      */
     public boolean isStudent() {
@@ -129,4 +135,3 @@ public class User {
         this.lastLoginAt = Instant.now();
     }
 }
-

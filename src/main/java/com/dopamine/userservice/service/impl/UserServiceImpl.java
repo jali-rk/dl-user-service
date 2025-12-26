@@ -84,6 +84,7 @@ public class UserServiceImpl implements UserService {
                 .whatsappNumber(request.getWhatsappNumber())
                 .school(request.getSchool())
                 .address(request.getAddress())
+                .nic(request.getNic())
                 .role(Role.STUDENT)
                 .status(UserStatus.ACTIVE)
                 .codeNumber(registrationNumber)

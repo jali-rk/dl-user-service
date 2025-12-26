@@ -61,5 +61,9 @@ public class StudentListItem {
      * Account creation timestamp.
      */
     private Instant createdAt;
-}
 
+    /**
+     * National Identity Card number (NIC).
+     */
+    private String nic;
+}

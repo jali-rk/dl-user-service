@@ -51,6 +51,7 @@ class GetAllStudentsIntegrationTest extends BaseIntegrationTest {
                     .whatsappNumber("+94770000" + i)
                     .school("Test School " + i)
                     .address("Test Address " + i)
+                    .nic("NIC-" + i)
                     .role(Role.STUDENT)
                     .status(UserStatus.ACTIVE)
                     .codeNumber("56000" + i)
@@ -68,7 +69,8 @@ class GetAllStudentsIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.items", hasSize(3)))
                 .andExpect(jsonPath("$.total", is(5)))
                 .andExpect(jsonPath("$.items[*].role", everyItem(is("STUDENT"))))
-                .andExpect(jsonPath("$.items[*].isVerified", everyItem(is(true))));
+                .andExpect(jsonPath("$.items[*].isVerified", everyItem(is(true))))
+                .andExpect(jsonPath("$.items[*].nic", everyItem(notNullValue())));
     }
 
     @Test
@@ -423,4 +425,3 @@ class GetAllStudentsIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.total", is(2)));
     }
 }
-
