@@ -42,7 +42,7 @@ public final class ApplicationConstants {
         private Email() {}
 
         // BFF notification endpoint
-        public static final String BFF_NOTIFICATION_ENDPOINT = "/internal/notifications/send-email";
+        public static final String BFF_NOTIFICATION_ENDPOINT = "/admin/notifications/broadcast";
 
         // Email subjects
         public static final String SUBJECT_VERIFICATION_CODE = "Your DopamineLite Verification Code";
@@ -99,4 +99,3 @@ public final class ApplicationConstants {
                 """;
     }
 }
-
