@@ -5,6 +5,7 @@ import com.dopamine.userservice.domain.*;
 import com.dopamine.userservice.dto.*;
 import com.dopamine.userservice.exception.*;
 import com.dopamine.userservice.mapper.UserMapper;
+import com.dopamine.userservice.repository.EmailResetTokenRepository;
 import com.dopamine.userservice.repository.PasswordResetTokenRepository;
 import com.dopamine.userservice.repository.UserRepository;
 import com.dopamine.userservice.repository.VerificationCodeRepository;
@@ -39,6 +40,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final VerificationCodeRepository verificationCodeRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailResetTokenRepository emailResetTokenRepository;
     private final UserMapper userMapper;
     private final BCryptPasswordEncoder passwordEncoder;
     private final StudentCodeGeneratorService studentCodeGeneratorService;
@@ -48,6 +50,7 @@ public class UserServiceImpl implements UserService {
             UserRepository userRepository,
             VerificationCodeRepository verificationCodeRepository,
             PasswordResetTokenRepository passwordResetTokenRepository,
+            EmailResetTokenRepository emailResetTokenRepository,
             UserMapper userMapper,
             BCryptPasswordEncoder passwordEncoder,
             StudentCodeGeneratorService studentCodeGeneratorService,
@@ -56,6 +59,7 @@ public class UserServiceImpl implements UserService {
         this.userRepository = userRepository;
         this.verificationCodeRepository = verificationCodeRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.emailResetTokenRepository = emailResetTokenRepository;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.studentCodeGeneratorService = studentCodeGeneratorService;
@@ -640,5 +644,111 @@ public class UserServiceImpl implements UserService {
         user.softDelete();
         userRepository.save(user);
         log.info("Soft deleted admin: {}", adminId);
+    }
+
+    @Override
+    @Transactional
+    public EmailResetResponse requestEmailReset(EmailResetRequest request) {
+        log.info("Email reset requested for userId={} oldEmail={} newEmail={}", request.getUserId(), request.getOldEmail(), request.getNewEmail());
+
+        User user = userRepository.findByIdAndNotDeleted(request.getUserId())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (user.getEmail() == null || request.getOldEmail() == null || !user.getEmail().equalsIgnoreCase(request.getOldEmail())) {
+            throw new UserNotFoundException("User not found");
+        }
+
+        // Ensure newEmail is not used by another user (case-insensitive)
+        var existing = userRepository.findByEmailIgnoreCaseAndNotDeleted(request.getNewEmail());
+        if (existing.isPresent() && !existing.get().getId().equals(user.getId())) {
+            throw new EmailAlreadyInUseException("Email already in use");
+        }
+
+        // Invalidate any existing active token for this user
+        emailResetTokenRepository.findActiveByUserId(user.getId()).ifPresent(active -> {
+            active.markAsUsed();
+            emailResetTokenRepository.save(active);
+        });
+
+        UUID tokenId = UUID.randomUUID();
+
+        byte[] secretBytes = new byte[32];
+        new SecureRandom().nextBytes(secretBytes);
+        String secret = Base64.getUrlEncoder().withoutPadding().encodeToString(secretBytes);
+
+        String secretHash = passwordEncoder.encode(secret);
+
+        EmailResetToken tokenEntity = EmailResetToken.builder()
+                .userId(user.getId())
+                .oldEmail(request.getOldEmail())
+                .newEmail(request.getNewEmail())
+                .tokenId(tokenId)
+                .tokenHash(secretHash)
+                .expiresAt(Instant.now().plus(ApplicationConstants.EmailReset.EMAIL_RESET_TOKEN_EXPIRY))
+                .used(false)
+                .build();
+
+        emailResetTokenRepository.save(tokenEntity);
+
+        // Token format consistent with password reset: {tokenId}.{secret}
+        String combinedToken = tokenId + "." + secret;
+
+        return EmailResetResponse.builder()
+                .token(combinedToken)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public EmailResetConfirmResponse confirmEmailReset(EmailResetConfirmRequest request) {
+        log.info("Confirming email reset with token");
+
+        String token = request.getToken();
+        String[] parts = token != null ? token.split("\\.", 2) : new String[0];
+        if (parts.length != 2) {
+            throw new InvalidEmailResetTokenException("Invalid or expired email reset token");
+        }
+
+        UUID tokenId;
+        try {
+            tokenId = UUID.fromString(parts[0]);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidEmailResetTokenException("Invalid or expired email reset token");
+        }
+
+        String secret = parts[1];
+
+        EmailResetToken tokenEntity = emailResetTokenRepository
+                .findValidByTokenId(tokenId, Instant.now())
+                .orElseThrow(() -> new InvalidEmailResetTokenException("Invalid or expired email reset token"));
+
+        if (!passwordEncoder.matches(secret, tokenEntity.getTokenHash())) {
+            log.warn("Invalid email reset token secret attempt");
+            throw new InvalidEmailResetTokenException("Invalid or expired email reset token");
+        }
+
+        // Race-condition protection: ensure new email is still unique
+        var existing = userRepository.findByEmailIgnoreCaseAndNotDeleted(tokenEntity.getNewEmail());
+        if (existing.isPresent() && !existing.get().getId().equals(tokenEntity.getUserId())) {
+            throw new EmailAlreadyInUseException("Email already in use");
+        }
+
+        User user = userRepository.findByIdAndNotDeleted(tokenEntity.getUserId())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        // Optional: ensure old email still matches what's stored on user to avoid stale tokens applying to a changed account
+        if (user.getEmail() == null || !user.getEmail().equalsIgnoreCase(tokenEntity.getOldEmail())) {
+            throw new InvalidEmailResetTokenException("Invalid or expired email reset token");
+        }
+
+        user.setEmail(tokenEntity.getNewEmail().toLowerCase());
+        userRepository.save(user);
+
+        tokenEntity.markAsUsed();
+        emailResetTokenRepository.save(tokenEntity);
+
+        return EmailResetConfirmResponse.builder()
+                .newEmail(user.getEmail())
+                .build();
     }
 }

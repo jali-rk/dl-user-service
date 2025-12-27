@@ -57,5 +57,28 @@ public class InternalAuthController {
         userService.confirmPasswordReset(request);
         return ResponseEntity.ok().build();
     }
-}
 
+    /**
+     * Request email reset (generates token and returns it for BFF to send via Notification Service).
+     * POST /internal/auth/email-reset/request
+     */
+    @PostMapping("/email-reset/request")
+    public ResponseEntity<EmailResetResponse> requestEmailReset(
+            @Valid @RequestBody EmailResetRequest request) {
+        log.info("Email reset request for userId: {}", request.getUserId());
+        EmailResetResponse response = userService.requestEmailReset(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Confirm email reset with token.
+     * POST /internal/auth/email-reset/confirm
+     */
+    @PostMapping("/email-reset/confirm")
+    public ResponseEntity<EmailResetConfirmResponse> confirmEmailReset(
+            @Valid @RequestBody EmailResetConfirmRequest request) {
+        log.info("Email reset confirmation request");
+        EmailResetConfirmResponse response = userService.confirmEmailReset(request);
+        return ResponseEntity.ok(response);
+    }
+}

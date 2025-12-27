@@ -126,4 +126,14 @@ public interface UserService {
      * Soft delete an admin (ADMIN or MAIN_ADMIN) by ID.
      */
     void deleteAdmin(UUID adminId);
+
+    /**
+     * Request an email reset token for verifying the new email address.
+     */
+    EmailResetResponse requestEmailReset(EmailResetRequest request);
+
+    /**
+     * Confirm an email reset using the verification token.
+     */
+    EmailResetConfirmResponse confirmEmailReset(EmailResetConfirmRequest request);
 }

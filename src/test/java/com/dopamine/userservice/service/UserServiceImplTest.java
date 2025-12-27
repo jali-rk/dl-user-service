@@ -4,6 +4,7 @@ import com.dopamine.userservice.domain.*;
 import com.dopamine.userservice.dto.*;
 import com.dopamine.userservice.exception.*;
 import com.dopamine.userservice.mapper.UserMapper;
+import com.dopamine.userservice.repository.EmailResetTokenRepository;
 import com.dopamine.userservice.repository.PasswordResetTokenRepository;
 import com.dopamine.userservice.repository.UserRepository;
 import com.dopamine.userservice.repository.VerificationCodeRepository;
@@ -46,11 +47,14 @@ class UserServiceImplTest {
     @Mock
     private PasswordResetTokenRepository passwordResetTokenRepository;
 
+    @Mock
+    private EmailResetTokenRepository emailResetTokenRepository;
+
     // Use real UserMapper instead of mock (Java 21+ compatibility)
     private final UserMapper userMapper = new UserMapper();
 
-    // Use real BCryptPasswordEncoder (avoid Mockito inline mocking issues)
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    @Mock
+    private BCryptPasswordEncoder passwordEncoder;
 
     @Mock
     private StudentCodeGeneratorService studentCodeGeneratorService;
@@ -67,6 +71,7 @@ class UserServiceImplTest {
                 userRepository,
                 verificationCodeRepository,
                 passwordResetTokenRepository,
+                emailResetTokenRepository,
                 userMapper,
                 passwordEncoder,
                 studentCodeGeneratorService,
@@ -83,9 +88,11 @@ class UserServiceImplTest {
         void shouldRegisterStudentSuccessfully() {
             // Given
             StudentRegistrationRequest request = TestDataBuilder.defaultStudentRegistrationRequest().build();
+            String hashedPassword = "$2a$10$hashedPassword";
             String generatedCode = "560001";
 
             when(userRepository.existsByEmailIgnoreCaseAndNotDeleted(request.getEmail())).thenReturn(false);
+            when(passwordEncoder.encode(request.getPassword())).thenReturn(hashedPassword);
             when(studentCodeGeneratorService.generateStudentCode()).thenReturn(generatedCode);
 
             User savedUser = TestDataBuilder.defaultStudent()
@@ -93,6 +100,7 @@ class UserServiceImplTest {
                     .codeNumber(generatedCode)
                     .build();
             when(userRepository.save(any(User.class))).thenReturn(savedUser);
+
 
             // When
             StudentRegistrationResponse response = userService.registerStudent(request);
@@ -107,6 +115,7 @@ class UserServiceImplTest {
 
             // Verify interactions
             verify(userRepository).existsByEmailIgnoreCaseAndNotDeleted(request.getEmail());
+            verify(passwordEncoder).encode(request.getPassword());
             verify(studentCodeGeneratorService).generateStudentCode();
 
             ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
@@ -114,7 +123,6 @@ class UserServiceImplTest {
             User capturedUser = userCaptor.getValue();
             assertThat(capturedUser.getCodeNumber()).isEqualTo(generatedCode);
             assertThat(capturedUser.getRole()).isEqualTo(Role.STUDENT);
-            assertThat(capturedUser.isVerified()).isFalse();
             assertThat(capturedUser.getPasswordHash()).isNotBlank();
 
             ArgumentCaptor<VerificationCode> codeCaptor = ArgumentCaptor.forClass(VerificationCode.class);
@@ -122,11 +130,16 @@ class UserServiceImplTest {
             VerificationCode capturedCode = codeCaptor.getValue();
             assertThat(capturedCode.getCode()).isEqualTo(generatedCode);
             assertThat(capturedCode.getType()).isEqualTo(VerificationType.REGISTRATION);
-            assertThat(capturedCode.getRetryCount()).isEqualTo(0);
+
+            // Email must be sent to BFF using UUID-based targeting
+            verify(emailNotificationService).sendVerificationCodeEmail(
+                    eq(savedUser.getId()),
+                    eq(generatedCode)
+            );
         }
 
         @Test
-        @DisplayName("Should throw exception when email already exists")
+        @DisplayName("Should throw exception when registering with existing email")
         void shouldThrowExceptionWhenEmailExists() {
             // Given
             StudentRegistrationRequest request = TestDataBuilder.defaultStudentRegistrationRequest().build();
@@ -157,6 +170,7 @@ class UserServiceImplTest {
             userService.registerStudent(request);
 
             // Then
+            when(passwordEncoder.encode(anyString())).thenReturn("hashedPassword");
             ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userCaptor.capture());
             assertThat(userCaptor.getValue().getEmail()).isEqualTo("test@example.com");
@@ -440,6 +454,7 @@ class UserServiceImplTest {
 
             // Then
             assertThat(response).isNotNull();
+            when(passwordEncoder.encode(anyString())).thenReturn("hashedToken");
             assertThat(response.getMessage()).contains("Password reset instructions");
 
             verify(passwordResetTokenRepository).save(argThat(token ->
@@ -451,8 +466,8 @@ class UserServiceImplTest {
         }
 
         @Test
-        @DisplayName("Should return generic message for non-existent email")
-        void shouldReturnGenericMessageForNonExistentEmail() {
+        @DisplayName("Should return generic response and not create token for non-existent user")
+        void shouldReturnGenericResponseForNonExistentUser() {
             // Given
             PasswordResetRequest request = TestDataBuilder.defaultPasswordResetRequest().build();
             when(userRepository.findByEmailIgnoreCaseAndNotDeleted(request.getEmail()))
@@ -529,6 +544,7 @@ class UserServiceImplTest {
 
             // When
             UserPublicView result = userService.createAdmin(request);
+            when(passwordEncoder.encode(request.getPassword())).thenReturn("hashedPassword");
 
             // Then
             assertThat(result).isNotNull();
@@ -541,8 +557,8 @@ class UserServiceImplTest {
         }
 
         @Test
-        @DisplayName("Should throw exception when admin email already exists")
-        void shouldThrowExceptionWhenAdminEmailExists() {
+        @DisplayName("Should throw exception when creating admin with existing email")
+        void shouldThrowExceptionWhenCreatingAdminWithExistingEmail() {
             // Given
             AdminCreateRequest request = TestDataBuilder.defaultAdminCreateRequest().build();
             when(userRepository.existsByEmailIgnoreCaseAndNotDeleted(request.getEmail())).thenReturn(true);

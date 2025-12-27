@@ -1,9 +1,11 @@
 package com.dopamine.userservice.controller;
 
 import com.dopamine.userservice.base.BaseIntegrationTest;
+import com.dopamine.userservice.domain.EmailResetToken;
 import com.dopamine.userservice.domain.User;
 import com.dopamine.userservice.domain.VerificationCode;
 import com.dopamine.userservice.dto.CredentialsValidationRequest;
+import com.dopamine.userservice.repository.EmailResetTokenRepository;
 import com.dopamine.userservice.repository.UserRepository;
 import com.dopamine.userservice.repository.VerificationCodeRepository;
 import com.dopamine.userservice.util.TestDataBuilder;
@@ -15,6 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -33,6 +36,9 @@ class InternalAuthControllerIntegrationTest extends BaseIntegrationTest {
     private VerificationCodeRepository verificationCodeRepository;
 
     @Autowired
+    private EmailResetTokenRepository emailResetTokenRepository;
+
+    @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
     @Value("${user.service.internal-token}")
@@ -43,6 +49,7 @@ class InternalAuthControllerIntegrationTest extends BaseIntegrationTest {
     @BeforeEach
     void setUp() {
         verificationCodeRepository.deleteAll();
+        emailResetTokenRepository.deleteAll();
         userRepository.deleteAll();
     }
 
@@ -256,5 +263,77 @@ class InternalAuthControllerIntegrationTest extends BaseIntegrationTest {
                 .content(invalidJson))
                 .andExpect(status().isBadRequest());
     }
-}
 
+    @Test
+    @DisplayName("Should request and confirm email reset")
+    void shouldRequestAndConfirmEmailReset() throws Exception {
+        // Given
+        User user = TestDataBuilder.verifiedStudent()
+                .email("old@example.com")
+                .build();
+        user = userRepository.save(user);
+
+        String requestJson = String.format("""
+            {
+              \"userId\": \"%s\",
+              \"oldEmail\": \"old@example.com\",
+              \"newEmail\": \"new@example.com\"
+            }
+            """, user.getId());
+
+        // When: request token
+        String responseBody = mockMvc.perform(post("/internal/auth/email-reset/request")
+                .header("X-Service-Token", serviceToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").exists())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        // Extract token from JSON without adding new deps (simple parse)
+        String token = responseBody.replaceAll(".*\\\"token\\\"\\s*:\\s*\\\"([^\\\"]+)\\\".*", "$1");
+        assertThat(token).isNotBlank();
+
+        // Confirm
+        String confirmJson = String.format("""
+            {
+              \"token\": \"%s\"
+            }
+            """, token);
+
+        mockMvc.perform(post("/internal/auth/email-reset/confirm")
+                .header("X-Service-Token", serviceToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(confirmJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.newEmail").value("new@example.com"));
+
+        // Then: user email actually updated
+        User updated = userRepository.findById(user.getId()).orElseThrow();
+        assertThat(updated.getEmail()).isEqualTo("new@example.com");
+    }
+
+    @Test
+    @DisplayName("Should return 409 when requesting email reset to an already-used email")
+    void shouldReturn409WhenNewEmailAlreadyUsed() throws Exception {
+        User user1 = userRepository.save(TestDataBuilder.verifiedStudent().email("a@example.com").build());
+        userRepository.save(TestDataBuilder.verifiedStudent().email("taken@example.com").build());
+
+        String requestJson = String.format("""
+            {
+              \"userId\": \"%s\",
+              \"oldEmail\": \"a@example.com\",
+              \"newEmail\": \"taken@example.com\"
+            }
+            """, user1.getId());
+
+        mockMvc.perform(post("/internal/auth/email-reset/request")
+                .header("X-Service-Token", serviceToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestJson))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_IN_USE"));
+    }
+}

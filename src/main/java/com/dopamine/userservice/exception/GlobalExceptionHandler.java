@@ -118,6 +118,26 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(InvalidEmailResetTokenException.class)
+    public ResponseEntity<ErrorObject> handleInvalidEmailResetToken(InvalidEmailResetTokenException ex) {
+        log.warn("Invalid email reset token: {}", ex.getMessage());
+        ErrorObject error = ErrorObject.builder()
+                .code("INVALID_EMAIL_RESET_TOKEN")
+                .message(ex.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(EmailAlreadyInUseException.class)
+    public ResponseEntity<ErrorObject> handleEmailAlreadyInUse(EmailAlreadyInUseException ex) {
+        log.warn("Email already in use: {}", ex.getMessage());
+        ErrorObject error = ErrorObject.builder()
+                .code("EMAIL_ALREADY_IN_USE")
+                .message(ex.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorObject> handleGenericException(Exception ex) {
         log.error("Unexpected error occurred", ex);
@@ -128,4 +148,3 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }
-

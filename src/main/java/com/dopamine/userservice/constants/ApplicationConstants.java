@@ -98,4 +98,16 @@ public final class ApplicationConstants {
                 DopamineLite Team
                 """;
     }
+
+    /**
+     * Email reset (verify new email) constants
+     */
+    public static final class EmailReset {
+        private EmailReset() {}
+
+        /**
+         * Expiry duration for email reset tokens (1 hour)
+         */
+        public static final Duration EMAIL_RESET_TOKEN_EXPIRY = Duration.ofHours(1);
+    }
 }
