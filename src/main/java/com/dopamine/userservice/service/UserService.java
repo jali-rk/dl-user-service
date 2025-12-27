@@ -43,6 +43,21 @@ public interface UserService {
     PaginatedStudentsResponse getStudentsPaginated(int page, int pageSize);
 
     /**
+     * Get paginated list of students with optional filters.
+     * Always returns users with role = STUDENT and not soft-deleted.
+     */
+    PaginatedStudentsResponse getStudentsPaginated(
+            int page,
+            int pageSize,
+            String email,
+            String name,
+            String whatsappNumber,
+            String codeNumber,
+            Boolean isVerified,
+            String status
+    );
+
+    /**
      * Update a student's profile.
      */
     UserPublicView updateStudent(UUID studentId, StudentUpdateRequest request);

@@ -258,28 +258,54 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public PaginatedStudentsResponse getStudentsPaginated(int page, int pageSize) {
-        log.info("Fetching students: page={}, pageSize={}", page, pageSize);
+        // Backwards-compatible behavior: active + verified students only
+        return getStudentsPaginated(page, pageSize, null, null, null, null, true, UserStatus.ACTIVE.name());
+    }
 
-        // Create pageable with page number (0-based for Spring Data), size, and sorting
-        // page parameter from client is 1-based, convert to 0-based for Spring Data
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedStudentsResponse getStudentsPaginated(
+            int page,
+            int pageSize,
+            String email,
+            String name,
+            String whatsappNumber,
+            String codeNumber,
+            Boolean isVerified,
+            String status
+    ) {
+        log.info("Searching students: page={}, pageSize={}, email={}, name={}, whatsappNumber={}, codeNumber={}, isVerified={}, status={}",
+                page, pageSize, email, name, whatsappNumber, codeNumber, isVerified, status);
+
         Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        // Fetch paginated students
-        Page<User> studentPage = userRepository.findAllActiveVerifiedStudents(pageable);
+        UserStatus parsedStatus = null;
+        if (status != null && !status.isBlank()) {
+            try {
+                parsedStatus = UserStatus.valueOf(status.trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+                // Invalid status value - ignore filter
+                log.warn("Ignoring invalid status filter: {}", status);
+            }
+        }
 
-        // Map to StudentListItem DTOs
+        Page<User> studentPage = userRepository.searchStudents(
+                email,
+                name,
+                whatsappNumber,
+                codeNumber,
+                isVerified,
+                parsedStatus,
+                pageable
+        );
+
         List<StudentListItem> items = studentPage.getContent().stream()
                 .map(userMapper::toStudentListItem)
                 .collect(Collectors.toList());
 
-        // Get total count
-        long total = studentPage.getTotalElements();
-
-        log.info("Found {} students on page {} out of {} total", items.size(), page, total);
-
         return PaginatedStudentsResponse.builder()
                 .items(items)
-                .total(total)
+                .total(studentPage.getTotalElements())
                 .build();
     }
 

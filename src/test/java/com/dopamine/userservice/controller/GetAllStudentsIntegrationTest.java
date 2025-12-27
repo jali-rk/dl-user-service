@@ -426,5 +426,106 @@ class GetAllStudentsIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.items", hasSize(0)))
                 .andExpect(jsonPath("$.total", is(2)));
     }
-}
 
+    @Test
+    @DisplayName("Should filter students by email")
+    void shouldFilterStudentsByEmail() throws Exception {
+        User student1 = User.builder()
+                .fullName("Student A")
+                .email("match@example.com")
+                .whatsappNumber("+94770011")
+                .school("School A")
+                .address("Address A")
+                .nic("NIC-A")
+                .role(Role.STUDENT)
+                .status(UserStatus.ACTIVE)
+                .codeNumber("560011")
+                .isVerified(true)
+                .passwordHash(passwordEncoder.encode("password123"))
+                .build();
+        userRepository.save(student1);
+
+        User student2 = User.builder()
+                .fullName("Student B")
+                .email("other@example.com")
+                .whatsappNumber("+94770012")
+                .school("School B")
+                .address("Address B")
+                .nic("NIC-B")
+                .role(Role.STUDENT)
+                .status(UserStatus.ACTIVE)
+                .codeNumber("560012")
+                .isVerified(true)
+                .passwordHash(passwordEncoder.encode("password123"))
+                .build();
+        userRepository.save(student2);
+
+        mockMvc.perform(get("/students")
+                        .param("page", "1")
+                        .param("pageSize", "10")
+                        .param("email", "match@"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.total", is(1)))
+                .andExpect(jsonPath("$.items[0].email", is("match@example.com")));
+    }
+
+    @Test
+    @DisplayName("Should filter students by status and isVerified")
+    void shouldFilterStudentsByStatusAndIsVerified() throws Exception {
+        User verifiedActive = User.builder()
+                .fullName("Verified Active")
+                .email("va@example.com")
+                .whatsappNumber("+94770101")
+                .school("School")
+                .address("Address")
+                .nic("NIC-VA")
+                .role(Role.STUDENT)
+                .status(UserStatus.ACTIVE)
+                .codeNumber("561001")
+                .isVerified(true)
+                .passwordHash(passwordEncoder.encode("password123"))
+                .build();
+        userRepository.save(verifiedActive);
+
+        User unverifiedActive = User.builder()
+                .fullName("Unverified Active")
+                .email("ua@example.com")
+                .whatsappNumber("+94770102")
+                .school("School")
+                .address("Address")
+                .nic("NIC-UA")
+                .role(Role.STUDENT)
+                .status(UserStatus.ACTIVE)
+                .codeNumber("561002")
+                .isVerified(false)
+                .passwordHash(passwordEncoder.encode("password123"))
+                .build();
+        userRepository.save(unverifiedActive);
+
+        User verifiedInactive = User.builder()
+                .fullName("Verified Inactive")
+                .email("vi@example.com")
+                .whatsappNumber("+94770103")
+                .school("School")
+                .address("Address")
+                .nic("NIC-VI")
+                .role(Role.STUDENT)
+                .status(UserStatus.INACTIVE)
+                .codeNumber("561003")
+                .isVerified(true)
+                .passwordHash(passwordEncoder.encode("password123"))
+                .build();
+        userRepository.save(verifiedInactive);
+
+        mockMvc.perform(get("/students")
+                        .param("page", "1")
+                        .param("pageSize", "10")
+                        .param("status", "ACTIVE")
+                        .param("isVerified", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.total", is(1)))
+                .andExpect(jsonPath("$.items[0].email", is("va@example.com")));
+    }
+}

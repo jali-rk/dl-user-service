@@ -101,6 +101,33 @@ public interface UserRepository extends JpaRepository<User, UUID> {
            "AND u.status = com.dopamine.userservice.domain.UserStatus.ACTIVE " +
            "AND u.isVerified = true")
     List<User> findByIdsAndNotDeleted(@Param("ids") List<UUID> ids);
+
+    /**
+     * Search students with optional filters.
+     * Always filters by role = STUDENT and deletedAt is null.
+     *
+     * @param email email filter (contains, case-insensitive)
+     * @param name full name filter (contains, case-insensitive)
+     * @param whatsappNumber whatsapp number filter (contains)
+     * @param codeNumber code number filter (contains)
+     * @param isVerified verified flag filter
+     * @param status user status filter
+     */
+    @Query("SELECT u FROM User u WHERE u.role = com.dopamine.userservice.domain.Role.STUDENT " +
+            "AND u.deletedAt IS NULL " +
+            "AND (:email IS NULL OR :email = '' OR LOWER(u.email) LIKE LOWER(CONCAT('%', :email, '%'))) " +
+            "AND (:name IS NULL OR :name = '' OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+            "AND (:whatsappNumber IS NULL OR :whatsappNumber = '' OR u.whatsappNumber LIKE CONCAT('%', :whatsappNumber, '%')) " +
+            "AND (:codeNumber IS NULL OR :codeNumber = '' OR u.codeNumber LIKE CONCAT('%', :codeNumber, '%')) " +
+            "AND (:isVerified IS NULL OR u.isVerified = :isVerified) " +
+            "AND (:status IS NULL OR u.status = :status)")
+    Page<User> searchStudents(
+            @Param("email") String email,
+            @Param("name") String name,
+            @Param("whatsappNumber") String whatsappNumber,
+            @Param("codeNumber") String codeNumber,
+            @Param("isVerified") Boolean isVerified,
+            @Param("status") UserStatus status,
+            Pageable pageable
+    );
 }
-
-

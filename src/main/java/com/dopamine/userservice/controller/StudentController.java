@@ -67,21 +67,36 @@ public class StudentController {
     }
 
     /**
-     * Get paginated list of all active and verified students.
-     * GET /students?page=1&pageSize=50
-     *
-     * @param page Page number (minimum 1)
-     * @param pageSize Number of items per page (minimum 1, maximum 100)
-     * @return Paginated response with students and total count
+     * Get paginated list of students with optional filters.
+     * GET /students?page=1&pageSize=50&email=...&name=...&whatsappNumber=...&codeNumber=...&isVerified=...&status=...
      */
     @GetMapping
     public ResponseEntity<PaginatedStudentsResponse> getAllStudents(
             @RequestParam @Min(value = 1, message = "Page must be at least 1") Integer page,
             @RequestParam @Min(value = 1, message = "Page size must be at least 1")
-            @Max(value = 100, message = "Page size must not exceed 100") Integer pageSize) {
+            @Max(value = 100, message = "Page size must not exceed 100") Integer pageSize,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String whatsappNumber,
+            @RequestParam(required = false) String codeNumber,
+            @RequestParam(required = false) Boolean isVerified,
+            @RequestParam(required = false) String status
+    ) {
 
-        log.info("Get students request: page={}, pageSize={}", page, pageSize);
-        PaginatedStudentsResponse response = userService.getStudentsPaginated(page, pageSize);
+        log.info("Get students request: page={}, pageSize={}, email={}, name={}, whatsappNumber={}, codeNumber={}, isVerified={}, status={}",
+                page, pageSize, email, name, whatsappNumber, codeNumber, isVerified, status);
+
+        PaginatedStudentsResponse response = userService.getStudentsPaginated(
+                page,
+                pageSize,
+                email,
+                name,
+                whatsappNumber,
+                codeNumber,
+                isVerified,
+                status
+        );
+
         log.info("Returning {} students out of {} total", response.getItems().size(), response.getTotal());
         return ResponseEntity.ok(response);
     }
@@ -110,4 +125,3 @@ public class StudentController {
         return ResponseEntity.ok(updatedStudent);
     }
 }
-
