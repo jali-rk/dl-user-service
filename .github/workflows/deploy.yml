@@ -45,6 +45,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
 
+      - name: Normalize ECR repository name
+        run: |
+          echo "ECR_REPOSITORY=$(echo "$ECR_REPOSITORY" | tr -d '\r\n')" >> $GITHUB_ENV
+
+
       # 6. Login Docker to Amazon ECR
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
