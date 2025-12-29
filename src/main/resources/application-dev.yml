@@ -5,7 +5,7 @@ spring:
   datasource:
     # ECS commonly injects SPRING_DATASOURCE_URL/USERNAME/PASSWORD.
     # Support both styles and keep local defaults.
-    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:postgresql://host.docker.internal:5432/userservice_db}}
+    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:postgresql://host.docker.internal:5432/userservice}}
     username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}
     password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:abcd1234}}
     driver-class-name: org.postgresql.Driver
