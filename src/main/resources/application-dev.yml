@@ -3,9 +3,11 @@ spring:
     name: userservice
 
   datasource:
-    url: jdbc:postgresql://host.docker.internal:5432/userservice_db
-    username: postgres
-    password: abcd1234
+    # ECS commonly injects SPRING_DATASOURCE_URL/USERNAME/PASSWORD.
+    # Support both styles and keep local defaults.
+    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:postgresql://host.docker.internal:5432/userservice_db}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:abcd1234}}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -38,10 +40,11 @@ user:
 
 bff:
   service:
+    # Use env var override in dev deployments; default points to your dev BFF.
     baseUrl: ${BFF_SERVICE_URL:https://dev-api.gingerbreaddopamine.com}
     internalToken: ${INTERNAL_SERVICE_TOKEN:change-me-in-production}
-    connectTimeout: 5
-    readTimeout: 10
+    connectTimeout: ${BFF_CONNECT_TIMEOUT:5}
+    readTimeout: ${BFF_READ_TIMEOUT:10}
 
 verification:
   code:
