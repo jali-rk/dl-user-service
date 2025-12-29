@@ -3,9 +3,11 @@ spring:
     name: userservice
 
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    # In ECS, common practice is to inject SPRING_DATASOURCE_URL/USERNAME/PASSWORD.
+    # Support both styles to avoid hard-coding and to keep local/other deploys working.
+    url: ${SPRING_DATASOURCE_URL:${DB_URL}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD}}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -34,7 +36,7 @@ server:
 
 user:
   service:
-    internalToken: ${INTERNAL_SERVICE_TOKEN:change-me-in-production}
+    internalToken: ${INTERNAL_SERVICE_TOKEN}
 
 verification:
   code:

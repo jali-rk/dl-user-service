@@ -3,11 +3,19 @@ name: Build & Deploy to ECS
 on:
   push:
     branches:
-      - main
+      - dev
+      - prod
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    # Use GitHub Environments so environment-scoped secrets/vars are used.
+    # This will select the environment based on the branch.
+    environment: ${{ github.ref_name == 'prod' && 'prod' || 'dev' }}
+
+    # Extra safety: don't run unless we're on one of the intended branches.
+    if: ${{ github.ref_name == 'dev' || github.ref_name == 'prod' }}
 
     steps:
       # 1. Checkout repository
@@ -29,7 +37,7 @@ jobs:
       - name: Build Spring Boot JAR
         run: mvn clean package -DskipTests
 
-      # 5. Configure AWS credentials (IAM user, NOT root)
+      # 5. Configure AWS credentials (from environment-scoped secrets)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
