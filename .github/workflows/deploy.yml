@@ -45,27 +45,29 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Normalize ECR repository name
+      # Normalize and compute ECR values from GitHub Environment vars.
+      # This prevents accidental whitespace/newlines from breaking tag/push.
+      - name: Compute image URI
+        shell: bash
+        env:
+          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
         run: |
-          echo "ECR_REPOSITORY=$(echo "$ECR_REPOSITORY" | tr -d '\r\n')" >> $GITHUB_ENV
-
+          REPO_CLEANED="$(echo -n "$ECR_REPOSITORY" | tr -d '\r\n')"
+          echo "ECR_REPOSITORY=$REPO_CLEANED" >> "$GITHUB_ENV"
+          echo "ECR_REGISTRY=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com" >> "$GITHUB_ENV"
+          echo "IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_CLEANED" >> "$GITHUB_ENV"
 
       # 6. Login Docker to Amazon ECR
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
       # 7. Build and push Docker image to ECR
-      - name: Build & push Docker image
-        env:
-          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
-          AWS_REGION: ${{ vars.AWS_REGION }}
-          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+      - name: Build & push Docker image (latest)
         run: |
-          docker build -t $ECR_REPOSITORY .
-          docker tag $ECR_REPOSITORY:latest \
-            $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
-          docker push \
-            $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+          docker build -t "$IMAGE_URI:latest" .
+          docker push "$IMAGE_URI:latest"
 
       # 8. Force ECS service redeploy so it pulls the new image
       - name: Force ECS service redeploy
