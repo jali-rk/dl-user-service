@@ -81,14 +81,37 @@ public class UserServiceImpl implements UserService {
         String registrationNumber = studentCodeGeneratorService.generateStudentCode();
         log.debug("Generated registration number: {}", registrationNumber);
 
+        // Parse enums from string values (BFF validation ensures valid values)
+        PaperWritingMode paperWritingMode = null;
+        if (request.getPaperWritingMode() != null && !request.getPaperWritingMode().isEmpty()) {
+            try {
+                paperWritingMode = PaperWritingMode.valueOf(request.getPaperWritingMode().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid paper writing mode: {}", request.getPaperWritingMode());
+            }
+        }
+
+        StudyMedium studyMedium = null;
+        if (request.getStudyMedium() != null && !request.getStudyMedium().isEmpty()) {
+            try {
+                studyMedium = StudyMedium.valueOf(request.getStudyMedium().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid study medium: {}", request.getStudyMedium());
+            }
+        }
+
         // Create user entity
         User user = User.builder()
                 .fullName(request.getFullName())
                 .email(request.getEmail().toLowerCase())
                 .whatsappNumber(request.getWhatsappNumber())
+                .secondaryPhoneNumber(request.getSecondaryPhoneNumber())
                 .school(request.getSchool())
                 .address(request.getAddress())
                 .nic(request.getNic())
+                .paperWritingMode(paperWritingMode)
+                .paperCenter(request.getPaperCenter())
+                .studyMedium(studyMedium)
                 .role(Role.STUDENT)
                 .status(UserStatus.ACTIVE)
                 .codeNumber(registrationNumber)

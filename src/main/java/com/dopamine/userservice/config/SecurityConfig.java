@@ -67,6 +67,8 @@ public class SecurityConfig {
                         "/userservice/actuator",
                         "/userservice/actuator/**"
                     ).permitAll()
+                    // Allow public GET access to paper centers (for registration form)
+                    .requestMatchers(org.springframework.http.HttpMethod.GET, "/paper-centers").permitAll()
                     // All other requests require service token authentication (handled by ServiceAuthFilter)
                     .anyRequest().authenticated()
                 )

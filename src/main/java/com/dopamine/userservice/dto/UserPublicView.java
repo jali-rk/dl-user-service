@@ -1,6 +1,8 @@
 package com.dopamine.userservice.dto;
 
+import com.dopamine.userservice.domain.PaperWritingMode;
 import com.dopamine.userservice.domain.Role;
+import com.dopamine.userservice.domain.StudyMedium;
 import com.dopamine.userservice.domain.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,6 +25,7 @@ public class UserPublicView {
     private String fullName;
     private String email;
     private String whatsappNumber;
+    private String secondaryPhoneNumber;
     private String school;
     private String address;
     private Role role;
@@ -33,4 +36,7 @@ public class UserPublicView {
     private Instant updatedAt;
     private Instant lastLoginAt;
     private String nic;
+    private PaperWritingMode paperWritingMode;
+    private String paperCenter;
+    private StudyMedium studyMedium;
 }

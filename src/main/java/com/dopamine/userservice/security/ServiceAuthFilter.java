@@ -44,6 +44,13 @@ public class ServiceAuthFilter extends OncePerRequestFilter {
             return;
         }
 
+        // Allow public GET access to paper centers
+        if ("GET".equalsIgnoreCase(request.getMethod()) && requestPath.endsWith("/paper-centers")) {
+            log.debug("Allowing unauthenticated GET access to paper centers endpoint");
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String providedToken = request.getHeader(SERVICE_TOKEN_HEADER);
 
         // Check if internal token is configured
