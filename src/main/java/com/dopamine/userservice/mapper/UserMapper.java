@@ -26,6 +26,7 @@ public class UserMapper {
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .whatsappNumber(user.getWhatsappNumber())
+                .secondaryPhoneNumber(user.getSecondaryPhoneNumber())
                 .school(user.getSchool())
                 .address(user.getAddress())
                 .role(user.getRole())
@@ -36,6 +37,9 @@ public class UserMapper {
                 .updatedAt(user.getUpdatedAt())
                 .lastLoginAt(user.getLastLoginAt())
                 .nic(user.getNic())
+                .paperWritingMode(user.getPaperWritingMode())
+                .paperCenter(user.getPaperCenter())
+                .studyMedium(user.getStudyMedium())
                 .build();
     }
 

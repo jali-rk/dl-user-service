@@ -138,6 +138,26 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
+    @ExceptionHandler(PaperCenterAlreadyExistsException.class)
+    public ResponseEntity<ErrorObject> handlePaperCenterAlreadyExists(PaperCenterAlreadyExistsException ex) {
+        log.warn("Paper center already exists: {}", ex.getMessage());
+        ErrorObject error = ErrorObject.builder()
+                .code("PAPER_CENTER_ALREADY_EXISTS")
+                .message(ex.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(PaperCenterNotFoundException.class)
+    public ResponseEntity<ErrorObject> handlePaperCenterNotFound(PaperCenterNotFoundException ex) {
+        log.warn("Paper center not found: {}", ex.getMessage());
+        ErrorObject error = ErrorObject.builder()
+                .code("PAPER_CENTER_NOT_FOUND")
+                .message(ex.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorObject> handleGenericException(Exception ex) {
         log.error("Unexpected error occurred", ex);

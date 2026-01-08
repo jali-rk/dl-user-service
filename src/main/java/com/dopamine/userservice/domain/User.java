@@ -87,6 +87,32 @@ public class User {
     private String nic;
 
     /**
+     * Secondary phone number for students (nullable for backward compatibility).
+     */
+    @Column(name = "secondary_phone_number", length = 20)
+    private String secondaryPhoneNumber;
+
+    /**
+     * Paper writing mode for students (nullable for backward compatibility).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "paper_writing_mode", length = 20)
+    private PaperWritingMode paperWritingMode;
+
+    /**
+     * Paper center name for students who choose PHYSICAL mode (nullable for backward compatibility).
+     */
+    @Column(name = "paper_center")
+    private String paperCenter;
+
+    /**
+     * Study medium preference for students (nullable for backward compatibility).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "study_medium", length = 20)
+    private StudyMedium studyMedium;
+
+    /**
      * Check if this user is a student.
      */
     public boolean isStudent() {
