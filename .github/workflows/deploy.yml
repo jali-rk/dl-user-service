@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - dev
-      - prod
+      - main
 
 jobs:
   deploy:
@@ -12,10 +12,10 @@ jobs:
 
     # Use GitHub Environments so environment-scoped secrets/vars are used.
     # This will select the environment based on the branch.
-    environment: ${{ github.ref_name == 'prod' && 'prod' || 'dev' }}
+    environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
 
     # Extra safety: don't run unless we're on one of the intended branches.
-    if: ${{ github.ref_name == 'dev' || github.ref_name == 'prod' }}
+    if: ${{ github.ref_name == 'dev' || github.ref_name == 'main' }}
 
     steps:
       # 1. Checkout repository
