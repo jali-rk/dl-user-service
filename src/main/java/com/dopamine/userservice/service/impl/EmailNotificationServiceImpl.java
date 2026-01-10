@@ -10,6 +10,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -27,7 +28,7 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
     private static final String ENV_VITE_API_BASE_URL = "VITE_API_BASE_URL";
 
     // Safety default (can be overridden by VITE_API_BASE_URL)
-    private static final String DEFAULT_BFF_BASE_URL = "https://dev-api.gingerbreaddopamine.com";
+    //private static final String DEFAULT_BFF_BASE_URL = "https://dev-api.gingerbreaddopamine.com";
 
     private final RestTemplate restTemplate;
     private final BffServiceProperties bffProperties;
@@ -58,8 +59,6 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
         String baseUrl;
         if (envBaseUrl != null && !envBaseUrl.isBlank()) {
             baseUrl = envBaseUrl;
-        } else if (DEFAULT_BFF_BASE_URL != null && !DEFAULT_BFF_BASE_URL.isBlank()) {
-            baseUrl = DEFAULT_BFF_BASE_URL;
         } else {
             baseUrl = bffProperties.getBaseUrl();
         }
@@ -109,7 +108,6 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            // Use the service token from configuration (ultimately sourced from INTERNAL_SERVICE_TOKEN env var)
             String internalToken = bffProperties.getInternalToken();
             if (internalToken == null || internalToken.isBlank()) {
                 log.warn("BFF service internal token is not configured; skipping {} email send for users {}",
@@ -120,18 +118,26 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
 
             HttpEntity<EmailNotificationRequest> httpEntity = new HttpEntity<>(request, headers);
 
-            restTemplate.postForEntity(
+            ResponseEntity<Void> response = restTemplate.postForEntity(
                     ApplicationConstants.Email.BFF_NOTIFICATION_ENDPOINT,
                     httpEntity,
                     Void.class
             );
 
-            log.info("Successfully sent {} email via broadcast to: {}", emailType, request.getTargetUserIds());
+            // 🔥 THIS IS THE IMPORTANT LINE
+            log.info("BFF RESPONSE STATUS = {}", response.getStatusCode());
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("Successfully sent {} email via broadcast to: {}", emailType, request.getTargetUserIds());
+            } else {
+                log.error("BFF CALL FAILED with status {} for {} email to {}",
+                        response.getStatusCode(), emailType, request.getTargetUserIds());
+            }
 
         } catch (RestClientException e) {
-            log.error("Failed to send {} email to: {}. Error: {}", emailType, request.getTargetUserIds(), e.getMessage(), e);
-            // Don't throw exception - email sending failure should not break the main flow
-            // The calling service should continue (e.g., user registration should still succeed)
+            log.error("BFF CALL FAILED due to exception for {} email to: {}. Error: {}",
+                    emailType, request.getTargetUserIds(), e.getMessage(), e);
         }
     }
+
 }
