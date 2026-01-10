@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - dev
-      - prod
+      - main
 
 jobs:
   deploy:
@@ -12,10 +12,10 @@ jobs:
 
     # Use GitHub Environments so environment-scoped secrets/vars are used.
     # This will select the environment based on the branch.
-    environment: ${{ github.ref_name == 'prod' && 'prod' || 'dev' }}
+    environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
 
     # Extra safety: don't run unless we're on one of the intended branches.
-    if: ${{ github.ref_name == 'dev' || github.ref_name == 'prod' }}
+    if: ${{ github.ref_name == 'dev' || github.ref_name == 'main' }}
 
     steps:
       # 1. Checkout repository
@@ -49,15 +49,30 @@ jobs:
       # This prevents accidental whitespace/newlines from breaking tag/push.
       - name: Compute image URI
         shell: bash
-        env:
-          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
-          AWS_REGION: ${{ vars.AWS_REGION }}
-          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
         run: |
-          REPO_CLEANED="$(echo -n "$ECR_REPOSITORY" | tr -d '\r\n')"
-          echo "ECR_REPOSITORY=$REPO_CLEANED" >> "$GITHUB_ENV"
-          echo "ECR_REGISTRY=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com" >> "$GITHUB_ENV"
-          echo "IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_CLEANED" >> "$GITHUB_ENV"
+          # Clean and trim variables
+          ACCOUNT_ID=$(echo -n "${{ vars.AWS_ACCOUNT_ID }}" | tr -d '\r\n' | xargs)
+          REGION=$(echo -n "${{ vars.AWS_REGION }}" | tr -d '\r\n' | xargs)
+          REPO=$(echo -n "${{ vars.ECR_REPOSITORY }}" | tr -d '\r\n' | xargs)
+          
+          # Debug output
+          echo "AWS Account ID: $ACCOUNT_ID"
+          echo "AWS Region: $REGION"
+          echo "ECR Repository: $REPO"
+          
+          # Validate variables are not empty
+          if [ -z "$ACCOUNT_ID" ] || [ -z "$REGION" ] || [ -z "$REPO" ]; then
+            echo "Error: One or more required variables are empty"
+            echo "ACCOUNT_ID: '$ACCOUNT_ID'"
+            echo "REGION: '$REGION'"
+            echo "REPO: '$REPO'"
+            exit 1
+          fi
+          
+          # Set environment variables for subsequent steps
+          echo "ECR_REPOSITORY=$REPO" >> "$GITHUB_ENV"
+          echo "ECR_REGISTRY=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com" >> "$GITHUB_ENV"
+          echo "IMAGE_URI=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${REPO}" >> "$GITHUB_ENV"
 
       # 6. Login Docker to Amazon ECR
       - name: Login to Amazon ECR

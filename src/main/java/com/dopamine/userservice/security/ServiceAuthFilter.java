@@ -53,6 +53,14 @@ public class ServiceAuthFilter extends OncePerRequestFilter {
 
         String providedToken = request.getHeader(SERVICE_TOKEN_HEADER);
 
+        // DEBUG (temporary): Print the incoming token value so we can confirm what's being passed.
+        // IMPORTANT: This prints a secret into logs/CloudWatch. Remove after debugging.
+        System.out.println("[DEBUG] X-Service-Token received: " + providedToken);
+
+        // DEBUG (temporary): Print the configured internal token resolved from env/Spring config.
+        // IMPORTANT: This prints a secret into logs/CloudWatch. Remove after debugging.
+        System.out.println("[DEBUG] INTERNAL token configured (user.service.internalToken): " + internalToken);
+
         // Check if internal token is configured
         if (internalToken == null || internalToken.isEmpty()) {
             log.warn("Internal service token is not configured. Rejecting request.");
@@ -83,4 +91,3 @@ public class ServiceAuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
-
