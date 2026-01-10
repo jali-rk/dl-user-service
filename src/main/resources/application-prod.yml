@@ -3,8 +3,8 @@ spring:
     name: userservice
 
   datasource:
-    # In ECS, common practice is to inject SPRING_DATASOURCE_URL/USERNAME/PASSWORD.
-    # Support both styles to avoid hard-coding and to keep local/other deploys working.
+    # ECS commonly injects SPRING_DATASOURCE_URL/USERNAME/PASSWORD.
+    # Support both styles to avoid hard-coding.
     url: ${SPRING_DATASOURCE_URL:${DB_URL}}
     username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME}}
     password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD}}
@@ -36,16 +36,14 @@ server:
 
 user:
   service:
-    internalToken: ${INTERNAL_SERVICE_TOKEN}
+    internalToken: ${INTERNAL_SERVICE_TOKEN:}
 
-verification:
-  code:
-    expiry:
-      minutes: 2
-    max:
-      retries: 3
-
-password:
+bff:
+  service:
+    baseUrl: ${VITE_API_BASE_URL:}
+    internalToken: ${INTERNAL_SERVICE_TOKEN:}
+    connectTimeout: ${BFF_CONNECT_TIMEOUT:5}
+    readTimeout: ${BFF_READ_TIMEOUT:10}
   reset:
     token:
       expiry:

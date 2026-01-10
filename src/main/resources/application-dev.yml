@@ -36,13 +36,12 @@ server:
 
 user:
   service:
-    internalToken: ${INTERNAL_SERVICE_TOKEN:change-me-in-production}
+    internalToken: ${INTERNAL_SERVICE_TOKEN:}
 
 bff:
   service:
-    # Use env var override in dev deployments; default points to your dev BFF.
-    baseUrl: ${BFF_SERVICE_URL:https://dev-api.gingerbreaddopamine.com}
-    internalToken: ${INTERNAL_SERVICE_TOKEN:change-me-in-production}
+    baseUrl: ${VITE_API_BASE_URL:}
+    internalToken: ${INTERNAL_SERVICE_TOKEN:}
     connectTimeout: ${BFF_CONNECT_TIMEOUT:5}
     readTimeout: ${BFF_READ_TIMEOUT:10}
 
