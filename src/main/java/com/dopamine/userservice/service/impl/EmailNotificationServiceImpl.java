@@ -103,7 +103,15 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-Service-Token", "change-me-in-production");
+
+            // Use the service token from configuration (ultimately sourced from INTERNAL_SERVICE_TOKEN env var)
+            String internalToken = bffProperties.getInternalToken();
+            if (internalToken == null || internalToken.isBlank()) {
+                log.warn("BFF service internal token is not configured; skipping {} email send for users {}",
+                        emailType, request.getTargetUserIds());
+                return;
+            }
+            headers.set("X-Service-Token", internalToken);
 
             HttpEntity<EmailNotificationRequest> httpEntity = new HttpEntity<>(request, headers);
 
