@@ -274,11 +274,28 @@ components:
           type: string
         whatsappNumber:
           type: string
+        secondaryPhoneNumber:
+          type: string
+          nullable: true
+        nic:
+          type: string
+          nullable: true
         school:
           type: string
           nullable: true
         address:
           type: string
+        paperCenter:
+          type: string
+          nullable: true
+        paperWritingMode:
+          type: string
+          nullable: true
+          description: "ONLINE | PHYSICAL | NOT_WRITING"
+        studyMedium:
+          type: string
+          nullable: true
+          description: "SINHALA | TAMIL | ENGLISH"
 
     AdminCreateRequest:
       type: object

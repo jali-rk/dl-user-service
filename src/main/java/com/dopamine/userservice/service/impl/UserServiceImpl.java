@@ -347,6 +347,35 @@ public class UserServiceImpl implements UserService {
             throw new UserNotFoundException("User with ID " + studentId + " is not a student");
         }
 
+        // Parse enums from string values (case-insensitive). If invalid, ignore update.
+        PaperWritingMode parsedPaperWritingMode = null;
+        boolean shouldUpdatePaperWritingMode = false;
+        if (request.getPaperWritingMode() != null) {
+            shouldUpdatePaperWritingMode = true;
+            if (!request.getPaperWritingMode().isBlank()) {
+                try {
+                    parsedPaperWritingMode = PaperWritingMode.valueOf(request.getPaperWritingMode().trim().toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid paper writing mode: {}", request.getPaperWritingMode());
+                    shouldUpdatePaperWritingMode = false;
+                }
+            }
+        }
+
+        StudyMedium parsedStudyMedium = null;
+        boolean shouldUpdateStudyMedium = false;
+        if (request.getStudyMedium() != null) {
+            shouldUpdateStudyMedium = true;
+            if (!request.getStudyMedium().isBlank()) {
+                try {
+                    parsedStudyMedium = StudyMedium.valueOf(request.getStudyMedium().trim().toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid study medium: {}", request.getStudyMedium());
+                    shouldUpdateStudyMedium = false;
+                }
+            }
+        }
+
         // Update only provided fields
         if (request.getFullName() != null) {
             user.setFullName(request.getFullName());
@@ -354,11 +383,26 @@ public class UserServiceImpl implements UserService {
         if (request.getWhatsappNumber() != null) {
             user.setWhatsappNumber(request.getWhatsappNumber());
         }
+        if (request.getSecondaryPhoneNumber() != null) {
+            user.setSecondaryPhoneNumber(request.getSecondaryPhoneNumber());
+        }
+        if (request.getNic() != null) {
+            user.setNic(request.getNic());
+        }
         if (request.getSchool() != null) {
             user.setSchool(request.getSchool());
         }
         if (request.getAddress() != null) {
             user.setAddress(request.getAddress());
+        }
+        if (shouldUpdatePaperWritingMode) {
+            user.setPaperWritingMode(parsedPaperWritingMode);
+        }
+        if (request.getPaperCenter() != null) {
+            user.setPaperCenter(request.getPaperCenter());
+        }
+        if (shouldUpdateStudyMedium) {
+            user.setStudyMedium(parsedStudyMedium);
         }
 
         user = userRepository.save(user);
