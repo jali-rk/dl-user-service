@@ -3,8 +3,8 @@ spring:
     name: userservice
 
   datasource:
-    # In ECS, common practice is to inject SPRING_DATASOURCE_URL/USERNAME/PASSWORD.
-    # Support both styles to avoid hard-coding and to keep local/other deploys working.
+    # ECS commonly injects SPRING_DATASOURCE_URL/USERNAME/PASSWORD.
+    # Support both styles to avoid hard-coding.
     url: ${SPRING_DATASOURCE_URL:${DB_URL}}
     username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME}}
     password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD}}
@@ -36,7 +36,16 @@ server:
 
 user:
   service:
-    internalToken: ${INTERNAL_SERVICE_TOKEN}
+    internalToken: ${INTERNAL_SERVICE_TOKEN:}
+
+bff:
+  service:
+    # Use env var override in prod deployments; default points to your prod BFF.
+    # If you want to force explicit configuration, remove the default URL.
+    baseUrl: ${BFF_SERVICE_URL:https://api.gingerbreaddopamine.com}
+    internalToken: ${INTERNAL_SERVICE_TOKEN:}
+    connectTimeout: ${BFF_CONNECT_TIMEOUT:5}
+    readTimeout: ${BFF_READ_TIMEOUT:10}
 
 verification:
   code:
