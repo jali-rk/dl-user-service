@@ -40,21 +40,10 @@ user:
 
 bff:
   service:
-    # Use env var override in prod deployments; default points to your prod BFF.
-    # If you want to force explicit configuration, remove the default URL.
-    baseUrl: ${BFF_SERVICE_URL:https://api.gingerbreaddopamine.com}
+    baseUrl: ${VITE_API_BASE_URL:}
     internalToken: ${INTERNAL_SERVICE_TOKEN:}
     connectTimeout: ${BFF_CONNECT_TIMEOUT:5}
     readTimeout: ${BFF_READ_TIMEOUT:10}
-
-verification:
-  code:
-    expiry:
-      minutes: 2
-    max:
-      retries: 3
-
-password:
   reset:
     token:
       expiry:
