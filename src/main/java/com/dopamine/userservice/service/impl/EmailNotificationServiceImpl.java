@@ -40,6 +40,9 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
 
         String baseUrl = resolveBffBaseUrl(bffProperties);
 
+        // TEMP DEBUG: print which baseUrl is used when sending registration/verification notifications
+        System.out.println("[EmailNotificationServiceImpl] Resolved BFF baseUrl for notifications: " + baseUrl);
+
         this.restTemplate = restTemplateBuilder
                 .rootUri(baseUrl)
                 .build();
@@ -60,6 +63,8 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
         } else {
             baseUrl = bffProperties.getBaseUrl();
         }
+
+        System.out.println("[EmailNotificationServiceImpl]2 Resolved BFF baseUrl for notifications: " + baseUrl);
 
         // Normalize trailing slash to avoid double slashes when appending paths
         if (baseUrl != null && baseUrl.endsWith("/")) {
