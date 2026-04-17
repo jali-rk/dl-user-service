@@ -1,5 +1,5 @@
 package com.dopamine.userservice.dto;
-
+import java.util.UUID;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -48,7 +48,7 @@ public class StudentUpdateRequest {
     /**
      * Paper center name (nullable).
      */
-    private String paperCenter;
+    private UUID paperCenter;
 
     /**
      * Study medium as a string. Persisted as enum in {@link com.dopamine.userservice.domain.User}.

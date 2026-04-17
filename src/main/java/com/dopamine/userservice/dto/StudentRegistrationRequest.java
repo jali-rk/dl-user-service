@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.UUID;
 /**
  * Request DTO for student registration.
  */
@@ -38,6 +39,6 @@ public class StudentRegistrationRequest {
     @Size(max = 20, message = "Secondary phone number must not exceed 20 characters")
     private String secondaryPhoneNumber;
     private String paperWritingMode;
-    private String paperCenter;
+    private UUID paperCenter;
     private String studyMedium;
 }
