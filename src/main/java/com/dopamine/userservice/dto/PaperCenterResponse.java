@@ -17,4 +17,9 @@ public class PaperCenterResponse {
     private String name;
     private Instant createdAt;
     private Instant updatedAt;
+    private Instant deletedAt;
+    
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
 }
