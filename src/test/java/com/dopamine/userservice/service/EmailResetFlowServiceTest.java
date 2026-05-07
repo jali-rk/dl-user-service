@@ -11,6 +11,7 @@ import com.dopamine.userservice.exception.UserNotFoundException;
 import com.dopamine.userservice.repository.EmailResetTokenRepository;
 import com.dopamine.userservice.repository.UserRepository;
 import com.dopamine.userservice.util.TestDataBuilder;
+import com.dopamine.userservice.repository.PaperCenterRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,6 +43,7 @@ class EmailResetFlowServiceTest {
     @Mock private com.dopamine.userservice.mapper.UserMapper userMapper;
     @Mock private com.dopamine.userservice.service.StudentCodeGeneratorService studentCodeGeneratorService;
     @Mock private com.dopamine.userservice.service.EmailNotificationService emailNotificationService;
+    @Mock private PaperCenterRepository paperCenterRepository; 
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -60,7 +62,8 @@ class EmailResetFlowServiceTest {
                 userMapper,
                 passwordEncoder,
                 studentCodeGeneratorService,
-                emailNotificationService
+                emailNotificationService,
+                paperCenterRepository 
         );
     }
 
