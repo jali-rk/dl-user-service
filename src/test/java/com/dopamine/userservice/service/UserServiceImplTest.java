@@ -10,6 +10,7 @@ import com.dopamine.userservice.repository.UserRepository;
 import com.dopamine.userservice.repository.VerificationCodeRepository;
 import com.dopamine.userservice.service.impl.UserServiceImpl;
 import com.dopamine.userservice.util.TestDataBuilder;
+import com.dopamine.userservice.repository.PaperCenterRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -61,6 +62,9 @@ class UserServiceImplTest {
 
     @Mock
     private EmailNotificationService emailNotificationService;
+    
+    @Mock 
+    private PaperCenterRepository paperCenterRepository;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -75,7 +79,8 @@ class UserServiceImplTest {
                 userMapper,
                 passwordEncoder,
                 studentCodeGeneratorService,
-                emailNotificationService
+                emailNotificationService,
+                paperCenterRepository 
         );
     }
 

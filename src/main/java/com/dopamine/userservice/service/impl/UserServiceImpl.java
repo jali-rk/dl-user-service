@@ -23,6 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import com.dopamine.userservice.domain.PaperCenter;
+import com.dopamine.userservice.repository.PaperCenterRepository;
+
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
@@ -45,6 +48,7 @@ public class UserServiceImpl implements UserService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final StudentCodeGeneratorService studentCodeGeneratorService;
     private final EmailNotificationService emailNotificationService;
+    private final PaperCenterRepository paperCenterRepository;
 
     public UserServiceImpl(
             UserRepository userRepository,
@@ -54,7 +58,8 @@ public class UserServiceImpl implements UserService {
             UserMapper userMapper,
             BCryptPasswordEncoder passwordEncoder,
             StudentCodeGeneratorService studentCodeGeneratorService,
-            EmailNotificationService emailNotificationService
+            EmailNotificationService emailNotificationService,
+            PaperCenterRepository paperCenterRepository
     ) {
         this.userRepository = userRepository;
         this.verificationCodeRepository = verificationCodeRepository;
@@ -64,6 +69,7 @@ public class UserServiceImpl implements UserService {
         this.passwordEncoder = passwordEncoder;
         this.studentCodeGeneratorService = studentCodeGeneratorService;
         this.emailNotificationService = emailNotificationService;
+        this.paperCenterRepository = paperCenterRepository;
     }
 
     @Override
@@ -100,6 +106,19 @@ public class UserServiceImpl implements UserService {
             }
         }
 
+        String paperCenterName = null;
+        if (paperWritingMode == PaperWritingMode.PHYSICAL) {
+            if (request.getPaperCenter() == null) {
+                throw new IllegalArgumentException("Paper center ID is required for PHYSICAL writing mode");
+            }
+            
+            PaperCenter paperCenter = paperCenterRepository.findById(request.getPaperCenter())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid paper center ID: " + request.getPaperCenter()));
+            
+            paperCenterName = paperCenter.getName(); // Store the name for denormalized field
+            log.info("Validated paper center: {} (ID: {})", paperCenterName, paperCenter.getId());
+        }
+
         // Create user entity
         User user = User.builder()
                 .fullName(request.getFullName())
@@ -110,7 +129,7 @@ public class UserServiceImpl implements UserService {
                 .address(request.getAddress())
                 .nic(request.getNic())
                 .paperWritingMode(paperWritingMode)
-                .paperCenter(request.getPaperCenter())
+                .paperCenter(paperCenterName)
                 .studyMedium(studyMedium)
                 .role(Role.STUDENT)
                 .status(UserStatus.ACTIVE)
@@ -376,6 +395,19 @@ public class UserServiceImpl implements UserService {
             }
         }
 
+        String paperCenterName = null;
+        if (shouldUpdatePaperWritingMode && parsedPaperWritingMode == PaperWritingMode.PHYSICAL) {
+            if (request.getPaperCenter() == null) {
+                throw new IllegalArgumentException("Paper center ID is required for PHYSICAL writing mode");
+            }
+            
+            PaperCenter paperCenter = paperCenterRepository.findById(request.getPaperCenter())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid paper center ID: " + request.getPaperCenter()));
+            
+            paperCenterName = paperCenter.getName();
+            log.info("Validated paper center for update: {} (ID: {})", paperCenterName, paperCenter.getId());
+        }
+
         // Update only provided fields
         if (request.getFullName() != null) {
             user.setFullName(request.getFullName());
@@ -397,9 +429,12 @@ public class UserServiceImpl implements UserService {
         }
         if (shouldUpdatePaperWritingMode) {
             user.setPaperWritingMode(parsedPaperWritingMode);
-        }
-        if (request.getPaperCenter() != null) {
-            user.setPaperCenter(request.getPaperCenter());
+            // Update paper center name if PHYSICAL mode, otherwise clear it
+            if (parsedPaperWritingMode == PaperWritingMode.PHYSICAL && paperCenterName != null) {
+                user.setPaperCenter(paperCenterName);
+            } else if (parsedPaperWritingMode != PaperWritingMode.PHYSICAL) {
+                user.setPaperCenter(null); // Clear paper center for other modes
+            }
         }
         if (shouldUpdateStudyMedium) {
             user.setStudyMedium(parsedStudyMedium);
