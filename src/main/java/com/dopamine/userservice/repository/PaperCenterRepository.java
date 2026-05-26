@@ -9,29 +9,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 import java.util.List;
 import java.util.UUID;
-/**
- * Repository for PaperCenter entity.
- */
+
 @Repository
 public interface PaperCenterRepository extends JpaRepository<PaperCenter, UUID> {
-    /**
-     * Find all paper centers ordered by name ascending.
-     */
+    @Query("SELECT pc FROM PaperCenter pc WHERE pc.deletedAt IS NULL ORDER BY pc.name ASC")
     List<PaperCenter> findAllByOrderByNameAsc();
-    /**
-     * Check if a paper center exists by name (case-sensitive).
-     */
+   
     @Query("SELECT CASE WHEN COUNT(pc) > 0 THEN true ELSE false END FROM PaperCenter pc WHERE pc.deletedAt IS NULL AND pc.name = :name")
     boolean existsActiveByName(@Param("name") String name);
     
     @Query("SELECT pc FROM PaperCenter pc WHERE pc.id = :id AND pc.deletedAt IS NULL")
     Optional<PaperCenter> findActiveById(@Param("id") UUID id);
-    
-    // @Query("SELECT pc FROM PaperCenter pc WHERE pc.id = :id")
-    // Optional<PaperCenter> findByIdIncludingDeleted(@Param("id") UUID id);
-    
-    // @Query("SELECT pc FROM PaperCenter pc ORDER BY pc.name ASC")
-    // List<PaperCenter> findAllIncludingDeleted();
     
     @Modifying
     @Transactional
