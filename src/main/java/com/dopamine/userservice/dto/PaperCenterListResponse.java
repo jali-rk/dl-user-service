@@ -14,4 +14,6 @@ import java.util.List;
 public class PaperCenterListResponse {
     private List<PaperCenterResponse> items;
     private int total;
+    private long activeCount;
+    private long deletedCount;
 }
