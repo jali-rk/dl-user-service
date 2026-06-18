@@ -10,13 +10,15 @@ public interface PaperCenterService {
     /**
      * Get all paper centers.
      */
-    PaperCenterListResponse getAllPaperCenters();
+    PaperCenterListResponse getAllPaperCenters(boolean includeDeleted);
     /**
-     * Create a new paper center.
+     * Create a new paper center.Fexist
      */
     PaperCenterResponse createPaperCenter(CreatePaperCenterRequest request);
     /**
      * Delete a paper center by ID.
      */
-    void deletePaperCenter(UUID centerId);
+    void softDeletePaperCenter(UUID centerId);
+    
+    PaperCenterResponse restorePaperCenter(UUID centerId);
 }

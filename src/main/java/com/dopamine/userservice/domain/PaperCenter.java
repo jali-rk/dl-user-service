@@ -4,6 +4,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Instant;
+import org.hibernate.annotations.Where;
 import java.util.UUID;
 /**
  * Entity representing a paper center where students can write their physical exams.
@@ -27,4 +28,19 @@ public class PaperCenter {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+    
+    public void softDelete() {
+        this.deletedAt = Instant.now();
+    }
+    
+    public void restore() {
+        this.deletedAt = null;
+    }
+    
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
 }

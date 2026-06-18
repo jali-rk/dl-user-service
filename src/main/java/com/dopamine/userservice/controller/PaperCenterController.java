@@ -22,14 +22,15 @@ public class PaperCenterController {
         this.paperCenterService = paperCenterService;
     }
     /**
-     * Get all paper centers.
+     * Get all paper centers including softly deleted centers.
      * GET /paper-centers
      * Public endpoint - no authentication required
      */
     @GetMapping
-    public ResponseEntity<PaperCenterListResponse> getAllPaperCenters() {
-        log.debug("Get all paper centers request");
-        PaperCenterListResponse response = paperCenterService.getAllPaperCenters();
+    public ResponseEntity<PaperCenterListResponse> getAllPaperCenters(
+            @RequestParam(defaultValue = "false") boolean includeDeleted) {
+        log.debug("Get paper centers request, includeDeleted: {}", includeDeleted);
+        PaperCenterListResponse response = paperCenterService.getAllPaperCenters(includeDeleted);
         return ResponseEntity.ok(response);
     }
     /**
@@ -45,14 +46,21 @@ public class PaperCenterController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     /**
-     * Delete a paper center (Admin only).
+     * Soft Deletion of a paper center (Admin only).
      * DELETE /paper-centers/{centerId}
      * Requires authentication via X-Service-Token
      */
     @DeleteMapping("/{centerId}")
     public ResponseEntity<Void> deletePaperCenter(@PathVariable UUID centerId) {
-        log.info("Delete paper center request for ID: {}", centerId);
-        paperCenterService.deletePaperCenter(centerId);
+        log.info("Soft delete paper center request for ID: {}", centerId);
+        paperCenterService.softDeletePaperCenter(centerId);
         return ResponseEntity.ok().build();
+    }
+    
+    @PostMapping("/{centerId}/restore")
+    public ResponseEntity<PaperCenterResponse> restorePaperCenter(@PathVariable UUID centerId) {
+        log.info("Restore paper center request for ID: {}", centerId);
+        PaperCenterResponse response = paperCenterService.restorePaperCenter(centerId);
+        return ResponseEntity.ok(response);
     }
 }
