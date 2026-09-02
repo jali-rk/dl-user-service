@@ -133,6 +133,11 @@ public interface UserService {
     void deleteAdmin(UUID adminId);
 
     /**
+     * List all non-deleted instructor accounts.
+     */
+    List<UserPublicView> listInstructors();
+
+    /**
      * Get an instructor by ID.
      */
     UserPublicView getInstructorById(UUID instructorId);

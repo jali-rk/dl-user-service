@@ -766,6 +766,16 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<UserPublicView> listInstructors() {
+        log.debug("Listing instructors");
+        List<User> instructors = userRepository.findByRoleAndNotDeleted(Role.INSTRUCTOR);
+        return instructors.stream()
+                .map(userMapper::toPublicView)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public UserPublicView getInstructorById(UUID instructorId) {
         log.debug("Getting instructor by ID: {}", instructorId);
         User user = userRepository.findByIdAndNotDeleted(instructorId)

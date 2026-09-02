@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -24,6 +25,17 @@ public class InstructorController {
 
     public InstructorController(UserService userService) {
         this.userService = userService;
+    }
+
+    /**
+     * List all instructor accounts.
+     * GET /instructors
+     */
+    @GetMapping
+    public ResponseEntity<List<UserPublicView>> listInstructors() {
+        log.debug("List instructors request");
+        List<UserPublicView> instructors = userService.listInstructors();
+        return ResponseEntity.ok(instructors);
     }
 
     /**
