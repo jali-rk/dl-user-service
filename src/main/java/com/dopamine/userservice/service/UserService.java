@@ -33,6 +33,11 @@ public interface UserService {
     UserPublicView getStudentById(UUID studentId);
 
     /**
+     * Get a student by exact code number.
+     */
+    UserPublicView getStudentByCodeNumber(String codeNumber);
+
+    /**
      * Get paginated list of all active and verified students.
      * Returns students with status = ACTIVE and isVerified = true.
      *
@@ -126,6 +131,21 @@ public interface UserService {
      * Soft delete an admin (ADMIN or MAIN_ADMIN) by ID.
      */
     void deleteAdmin(UUID adminId);
+
+    /**
+     * Get an instructor by ID.
+     */
+    UserPublicView getInstructorById(UUID instructorId);
+
+    /**
+     * Update an instructor's profile.
+     */
+    UserPublicView updateInstructor(UUID instructorId, InstructorUpdateRequest request);
+
+    /**
+     * Soft delete an instructor by ID.
+     */
+    void deleteInstructor(UUID instructorId);
 
     /**
      * Request an email reset token for verifying the new email address.
