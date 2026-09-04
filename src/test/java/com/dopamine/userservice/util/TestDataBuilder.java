@@ -62,6 +62,19 @@ public class TestDataBuilder {
                 .updatedAt(Instant.now());
     }
 
+    public static User.UserBuilder defaultInstructor() {
+        return User.builder()
+                .id(UUID.randomUUID())
+                .fullName("Instructor User")
+                .email("instructor@example.com")
+                .role(Role.INSTRUCTOR)
+                .status(UserStatus.ACTIVE)
+                .isVerified(true)
+                .passwordHash("$2a$10$hashedPassword")
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now());
+    }
+
     // DTO Builders
     public static StudentRegistrationRequest.StudentRegistrationRequestBuilder defaultStudentRegistrationRequest() {
         return StudentRegistrationRequest.builder()

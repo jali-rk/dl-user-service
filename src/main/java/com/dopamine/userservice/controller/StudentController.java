@@ -113,6 +113,17 @@ public class StudentController {
     }
 
     /**
+     * Get student by exact code number.
+     * GET /students/by-code-number?codeNumber={codeNumber}
+     */
+    @GetMapping("/by-code-number")
+    public ResponseEntity<UserPublicView> getStudentByCodeNumber(@RequestParam String codeNumber) {
+        log.debug("Get student request for code number: {}", codeNumber);
+        UserPublicView student = userService.getStudentByCodeNumber(codeNumber);
+        return ResponseEntity.ok(student);
+    }
+
+    /**
      * Update student profile.
      * PATCH /students/{studentId}
      */
