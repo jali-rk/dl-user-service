@@ -17,7 +17,12 @@ public enum Role {
     /**
      * Main admin role - for super administrators with full privileges
      */
-    MAIN_ADMIN
+    MAIN_ADMIN,
+
+    /**
+     * Instructor role - paper-center staff who scan student QR passes to mark attendance
+     */
+    INSTRUCTOR
 }
 
 

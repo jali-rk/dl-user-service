@@ -303,6 +303,20 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
+    public UserPublicView getStudentByCodeNumber(String codeNumber) {
+        log.debug("Getting student by code number: {}", codeNumber);
+        User user = userRepository.findByCodeNumberAndNotDeleted(codeNumber)
+                .orElseThrow(() -> new UserNotFoundException("Student not found with code number: " + codeNumber));
+
+        if (user.getRole() != Role.STUDENT) {
+            throw new UserNotFoundException("User with code number " + codeNumber + " is not a student");
+        }
+
+        return userMapper.toPublicView(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PaginatedStudentsResponse getStudentsPaginated(int page, int pageSize) {
         // Backwards-compatible behavior: active + verified students only
         return getStudentsPaginated(page, pageSize, null, null, null, null, true, UserStatus.ACTIVE.name());
@@ -450,9 +464,11 @@ public class UserServiceImpl implements UserService {
     public UserPublicView createAdmin(AdminCreateRequest request) {
         log.info("Creating admin with email: {} and role: {}", request.getEmail(), request.getRole());
 
-        // Validate role (should be ADMIN or MAIN_ADMIN)
-        if (request.getRole() != Role.ADMIN && request.getRole() != Role.MAIN_ADMIN) {
-            throw new IllegalArgumentException("Invalid role for admin creation: " + request.getRole());
+        // Validate role (ADMIN, MAIN_ADMIN, or INSTRUCTOR — all created through this same endpoint)
+        if (request.getRole() != Role.ADMIN
+                && request.getRole() != Role.MAIN_ADMIN
+                && request.getRole() != Role.INSTRUCTOR) {
+            throw new IllegalArgumentException("Invalid role for account creation: " + request.getRole());
         }
 
         // Check if user already exists
@@ -746,6 +762,68 @@ public class UserServiceImpl implements UserService {
         user.softDelete();
         userRepository.save(user);
         log.info("Soft deleted admin: {}", adminId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserPublicView> listInstructors() {
+        log.debug("Listing instructors");
+        List<User> instructors = userRepository.findByRoleAndNotDeleted(Role.INSTRUCTOR);
+        return instructors.stream()
+                .map(userMapper::toPublicView)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserPublicView getInstructorById(UUID instructorId) {
+        log.debug("Getting instructor by ID: {}", instructorId);
+        User user = userRepository.findByIdAndNotDeleted(instructorId)
+                .orElseThrow(() -> new UserNotFoundException("Instructor not found with ID: " + instructorId));
+
+        if (!user.isInstructor()) {
+            throw new UserNotFoundException("Instructor not found with ID: " + instructorId);
+        }
+
+        return userMapper.toPublicView(user);
+    }
+
+    @Override
+    @Transactional
+    public UserPublicView updateInstructor(UUID instructorId, InstructorUpdateRequest request) {
+        log.info("Updating instructor: {}", instructorId);
+        User user = userRepository.findByIdAndNotDeleted(instructorId)
+                .orElseThrow(() -> new UserNotFoundException("Instructor not found with ID: " + instructorId));
+
+        if (!user.isInstructor()) {
+            throw new UserNotFoundException("Instructor not found with ID: " + instructorId);
+        }
+
+        // Update only provided fields
+        if (request.getFullName() != null) {
+            user.setFullName(request.getFullName());
+        }
+
+        user = userRepository.save(user);
+        log.info("Updated instructor: {}", instructorId);
+        return userMapper.toPublicView(user);
+    }
+
+    @Override
+    @Transactional
+    public void deleteInstructor(UUID instructorId) {
+        log.info("Deleting instructor: {}", instructorId);
+
+        User user = userRepository.findByIdAndNotDeleted(instructorId)
+                .orElseThrow(() -> new UserNotFoundException("Instructor not found with ID: " + instructorId));
+
+        if (!user.isInstructor()) {
+            throw new UserNotFoundException("Instructor not found with ID: " + instructorId);
+        }
+
+        user.softDelete();
+        userRepository.save(user);
+        log.info("Soft deleted instructor: {}", instructorId);
     }
 
     @Override

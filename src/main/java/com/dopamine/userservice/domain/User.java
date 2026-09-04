@@ -134,6 +134,13 @@ public class User {
     }
 
     /**
+     * Check if this user is an instructor.
+     */
+    public boolean isInstructor() {
+        return role == Role.INSTRUCTOR;
+    }
+
+    /**
      * Check if this user is soft deleted.
      */
     public boolean isDeleted() {
