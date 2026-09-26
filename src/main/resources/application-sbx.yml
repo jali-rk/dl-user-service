@@ -1,0 +1,72 @@
+spring:
+  application:
+    name: userservice
+
+  datasource:
+    # ECS commonly injects SPRING_DATASOURCE_URL/USERNAME/PASSWORD.
+    # Support both styles and keep local defaults.
+    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:postgresql://host.docker.internal:5432/userservice}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:abcd1234}}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+
+server:
+  port: 8080
+  servlet:
+    context-path: /userservice
+
+user:
+  service:
+    internalToken: ${INTERNAL_SERVICE_TOKEN:}
+
+bff:
+  service:
+    baseUrl: ${VITE_API_BASE_URL:}
+    internalToken: ${INTERNAL_SERVICE_TOKEN:}
+    connectTimeout: ${BFF_CONNECT_TIMEOUT:5}
+    readTimeout: ${BFF_READ_TIMEOUT:10}
+
+verification:
+  code:
+    expiry:
+      minutes: 2
+    max:
+      retries: 3
+
+password:
+  reset:
+    token:
+      expiry:
+        minutes: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    defaults:
+      enabled: true
