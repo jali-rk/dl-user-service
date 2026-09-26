@@ -5,6 +5,7 @@ on:
     branches:
       - dev
       - main
+      - sbx
 
 jobs:
   deploy:
@@ -12,10 +13,10 @@ jobs:
 
     # Use GitHub Environments so environment-scoped secrets/vars are used.
     # This will select the environment based on the branch.
-    environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+    environment: ${{ github.ref_name == 'main' && 'prod' || (github.ref_name == 'sbx' && 'sbx' || 'dev') }}
 
     # Extra safety: don't run unless we're on one of the intended branches.
-    if: ${{ github.ref_name == 'dev' || github.ref_name == 'main' }}
+    if: ${{ github.ref_name == 'dev' || github.ref_name == 'main' || github.ref_name == 'sbx' }}
 
     steps:
       # 1. Checkout repository
