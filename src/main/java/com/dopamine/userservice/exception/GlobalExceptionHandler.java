@@ -2,6 +2,7 @@ package com.dopamine.userservice.exception;
 
 import com.dopamine.userservice.dto.ErrorObject;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -134,6 +135,35 @@ public class GlobalExceptionHandler {
         ErrorObject error = ErrorObject.builder()
                 .code("EMAIL_ALREADY_IN_USE")
                 .message(ex.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(NicAlreadyInUseException.class)
+    public ResponseEntity<ErrorObject> handleNicAlreadyInUse(NicAlreadyInUseException ex) {
+        log.warn("NIC already in use: {}", ex.getMessage());
+        ErrorObject error = ErrorObject.builder()
+                .code("NIC_ALREADY_IN_USE")
+                .message(ex.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    /**
+     * Safety net for unique-constraint violations that slip past the service-level checks
+     * (e.g. two concurrent requests with the same NIC). Without this they surface as a generic 500.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorObject> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        String detail = ex.getMostSpecificCause().getMessage();
+        if (detail != null && detail.contains("ux_users_nic")) {
+            log.warn("NIC unique constraint violated: {}", detail);
+            return handleNicAlreadyInUse(new NicAlreadyInUseException("An account with this NIC already exists"));
+        }
+        log.error("Data integrity violation", ex);
+        ErrorObject error = ErrorObject.builder()
+                .code("DATA_CONFLICT")
+                .message("The request conflicts with existing data.")
                 .build();
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
