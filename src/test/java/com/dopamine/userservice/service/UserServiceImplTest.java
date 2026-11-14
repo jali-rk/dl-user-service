@@ -160,6 +160,22 @@ class UserServiceImplTest {
         }
 
         @Test
+        @DisplayName("Should throw NicAlreadyInUseException when registering with existing NIC")
+        void shouldThrowExceptionWhenNicExists() {
+            // Given
+            StudentRegistrationRequest request = TestDataBuilder.defaultStudentRegistrationRequest().build();
+            when(userRepository.existsByEmailIgnoreCaseAndNotDeleted(request.getEmail())).thenReturn(false);
+            when(userRepository.existsByNic(request.getNic())).thenReturn(true);
+
+            // When/Then
+            assertThatThrownBy(() -> userService.registerStudent(request))
+                    .isInstanceOf(NicAlreadyInUseException.class);
+
+            verify(userRepository, never()).save(any(User.class));
+            verify(verificationCodeRepository, never()).save(any(VerificationCode.class));
+        }
+
+        @Test
         @DisplayName("Should convert email to lowercase")
         void shouldConvertEmailToLowercase() {
             // Given
@@ -530,6 +546,43 @@ class UserServiceImplTest {
             assertThatThrownBy(() -> userService.updateStudent(adminId, request))
                     .isInstanceOf(UserNotFoundException.class)
                     .hasMessageContaining("not a student");
+        }
+
+        @Test
+        @DisplayName("Should throw NicAlreadyInUseException when updating to another account's NIC")
+        void shouldThrowExceptionWhenUpdatingToTakenNic() {
+            // Given
+            UUID studentId = UUID.randomUUID();
+            StudentUpdateRequest request = TestDataBuilder.defaultStudentUpdateRequest().nic("199912345678").build();
+            User student = TestDataBuilder.verifiedStudent().id(studentId).build();
+
+            when(userRepository.findByIdAndNotDeleted(studentId)).thenReturn(Optional.of(student));
+            when(userRepository.existsByNicAndIdNot("199912345678", studentId)).thenReturn(true);
+
+            // When/Then
+            assertThatThrownBy(() -> userService.updateStudent(studentId, request))
+                    .isInstanceOf(NicAlreadyInUseException.class);
+            verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Should allow update that resubmits the student's own NIC")
+        void shouldAllowUpdateWithOwnNic() {
+            // Given
+            UUID studentId = UUID.randomUUID();
+            User student = TestDataBuilder.verifiedStudent().id(studentId).build();
+            StudentUpdateRequest request = TestDataBuilder.defaultStudentUpdateRequest().nic(student.getNic()).build();
+
+            when(userRepository.findByIdAndNotDeleted(studentId)).thenReturn(Optional.of(student));
+            when(userRepository.existsByNicAndIdNot(student.getNic(), studentId)).thenReturn(false);
+            when(userRepository.save(any(User.class))).thenReturn(student);
+
+            // When
+            UserPublicView result = userService.updateStudent(studentId, request);
+
+            // Then
+            assertThat(result).isNotNull();
+            verify(userRepository).save(any(User.class));
         }
     }
 

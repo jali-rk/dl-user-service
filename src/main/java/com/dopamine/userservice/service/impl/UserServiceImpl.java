@@ -83,6 +83,11 @@ public class UserServiceImpl implements UserService {
             throw new UserAlreadyExistsException("User with email " + request.getEmail() + " already exists");
         }
 
+        if (userRepository.existsByNic(request.getNic())) {
+            log.warn("Registration rejected: NIC already registered (email: {})", request.getEmail());
+            throw new NicAlreadyInUseException("An account with this NIC already exists");
+        }
+
         // Generate registration number from sequence
         String registrationNumber = studentCodeGeneratorService.generateStudentCode();
         log.debug("Generated registration number: {}", registrationNumber);
@@ -433,6 +438,10 @@ public class UserServiceImpl implements UserService {
             user.setSecondaryPhoneNumber(request.getSecondaryPhoneNumber());
         }
         if (request.getNic() != null) {
+            if (userRepository.existsByNicAndIdNot(request.getNic(), user.getId())) {
+                log.warn("Update rejected for student {}: NIC already registered to another account", studentId);
+                throw new NicAlreadyInUseException("This NIC is already registered to another account");
+            }
             user.setNic(request.getNic());
         }
         if (request.getSchool() != null) {

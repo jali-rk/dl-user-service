@@ -84,6 +84,18 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByCodeNumberAndNotDeleted(@Param("codeNumber") String codeNumber);
 
     /**
+     * Check if any user (including soft-deleted ones) holds the given NIC.
+     * Deliberately not filtered by deletedAt: the ux_users_nic unique index covers all rows,
+     * so a soft-deleted user's NIC still cannot be reused.
+     */
+    boolean existsByNic(String nic);
+
+    /**
+     * Same as {@link #existsByNic(String)} but ignores the given user, for profile updates.
+     */
+    boolean existsByNicAndIdNot(String nic, UUID id);
+
+    /**
      * Get the next value from the student code number sequence.
      */
     @Query(value = "SELECT nextval('student_code_number_seq')", nativeQuery = true)
