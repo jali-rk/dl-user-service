@@ -75,11 +75,11 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public StudentRegistrationResponse registerStudent(StudentRegistrationRequest request) {
-        log.info("Registering new student with email: {}", request.getEmail());
+        log.info("Registering new student");
 
         // Check if user already exists
         if (userRepository.existsByEmailIgnoreCaseAndNotDeleted(request.getEmail())) {
-            log.warn("User with email {} already exists", request.getEmail());
+            log.warn("Registration rejected: email already registered");
             throw new UserAlreadyExistsException("User with email " + request.getEmail() + " already exists");
         }
 
@@ -173,7 +173,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserPublicView verifyStudentCode(VerifyCodeRequest request) {
-        log.info("Verifying student code for email: {}", request.getEmail());
+        log.info("Verifying student code");
 
         // Find user by email: What if two students are gonna use the same email? -> Handled by unique constraint on registration
         User user = userRepository.findByEmailIgnoreCaseAndNotDeleted(request.getEmail())
@@ -224,7 +224,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public ResendVerificationCodeResponse resendVerificationCode(ResendVerificationCodeRequest request) {
-        log.info("Resending verification code for email: {}", request.getEmail());
+        log.info("Resending verification code");
 
         // Find user by email
         User user = userRepository.findByEmailIgnoreCaseAndNotDeleted(request.getEmail())
@@ -334,8 +334,7 @@ public class UserServiceImpl implements UserService {
             Boolean isVerified,
             String status
     ) {
-        log.info("Searching students: page={}, pageSize={}, email={}, name={}, whatsappNumber={}, codeNumber={}, isVerified={}, status={}",
-                page, pageSize, email, name, whatsappNumber, codeNumber, isVerified, status);
+        log.info("Searching students: page={}, pageSize={}, isVerified={}, status={}", page, pageSize, isVerified, status);
 
         Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
@@ -462,7 +461,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserPublicView createAdmin(AdminCreateRequest request) {
-        log.info("Creating admin with email: {} and role: {}", request.getEmail(), request.getRole());
+        log.info("Creating account with role: {}", request.getRole());
 
         // Validate role (ADMIN, MAIN_ADMIN, or INSTRUCTOR — all created through this same endpoint)
         if (request.getRole() != Role.ADMIN
@@ -473,7 +472,7 @@ public class UserServiceImpl implements UserService {
 
         // Check if user already exists
         if (userRepository.existsByEmailIgnoreCaseAndNotDeleted(request.getEmail())) {
-            log.warn("User with email {} already exists", request.getEmail());
+            log.warn("Registration rejected: email already registered");
             throw new UserAlreadyExistsException("User with email " + request.getEmail() + " already exists");
         }
 
@@ -568,7 +567,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserPublicView getUserByEmail(String email) {
-        log.debug("Getting user by email: {}", email);
+        log.debug("Getting user by email");
         User user = userRepository.findByEmailIgnoreCaseAndNotDeleted(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
         return userMapper.toPublicView(user);
@@ -577,7 +576,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public CredentialsValidationResponse validateCredentials(CredentialsValidationRequest request) {
-        log.info("Validating credentials for email: {}", request.getEmail());
+        log.info("Validating credentials");
 
         try {
             // Find user by email
@@ -624,7 +623,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public PasswordResetResponse requestPasswordReset(PasswordResetRequest request) {
-        log.info("Password reset requested for email: {}", request.getEmail());
+        log.info("Password reset requested");
 
         // Always return success to avoid leaking user existence
         // But only create token if user exists
@@ -665,7 +664,7 @@ public class UserServiceImpl implements UserService {
                         .token(combinedToken)
                         .build();
             } else {
-                log.info("Password reset requested for non-existent email: {}", request.getEmail());
+                log.info("Password reset requested for unknown account");
             }
 
         } catch (Exception e) {
@@ -829,7 +828,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public EmailResetResponse requestEmailReset(EmailResetRequest request) {
-        log.info("Email reset requested for userId={} oldEmail={} newEmail={}", request.getUserId(), request.getOldEmail(), request.getNewEmail());
+        log.info("Email reset requested for userId={}", request.getUserId());
 
         User user = userRepository.findByIdAndNotDeleted(request.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));

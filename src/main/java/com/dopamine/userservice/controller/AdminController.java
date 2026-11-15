@@ -37,8 +37,7 @@ public class AdminController {
     @PostMapping
     public ResponseEntity<UserPublicView> createAdmin(
             @Valid @RequestBody AdminCreateRequest request) {
-        log.info("Admin creation request received for email: {} with role: {}",
-                request.getEmail(), request.getRole());
+        log.info("Admin creation request received with role: {}", request.getRole());
         UserPublicView admin = userService.createAdmin(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(admin);
     }

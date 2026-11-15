@@ -44,7 +44,7 @@ public class UserController {
      */
     @GetMapping("/by-email")
     public ResponseEntity<UserPublicView> getUserByEmail(@RequestParam String email) {
-        log.debug("Get user request for email: {}", email);
+        log.debug("Get user by email request received");
         UserPublicView user = userService.getUserByEmail(email);
         return ResponseEntity.ok(user);
     }
