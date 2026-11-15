@@ -29,7 +29,7 @@ public class InternalAuthController {
     @PostMapping("/validate-credentials")
     public ResponseEntity<CredentialsValidationResponse> validateCredentials(
             @Valid @RequestBody CredentialsValidationRequest request) {
-        log.info("Credential validation request for email: {}", request.getEmail());
+        log.info("Credential validation request received");
         CredentialsValidationResponse response = userService.validateCredentials(request);
         return ResponseEntity.ok(response);
     }
@@ -41,7 +41,7 @@ public class InternalAuthController {
     @PostMapping("/password-reset/request")
     public ResponseEntity<PasswordResetResponse> requestPasswordReset(
             @Valid @RequestBody PasswordResetRequest request) {
-        log.info("Password reset request for email: {}", request.getEmail());
+        log.info("Password reset request received");
         PasswordResetResponse response = userService.requestPasswordReset(request);
         return ResponseEntity.ok(response);
     }

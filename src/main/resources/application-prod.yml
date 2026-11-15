@@ -9,6 +9,12 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME}}
     password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD}}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      data-source-properties:
+        # Keep row values out of exception messages (and therefore logs).
+        # Without this, pgjdbc puts "Detail: Key (nic)=(...)" and the full
+        # "Batch entry N insert into users ... values (...)" into the error.
+        logServerErrorDetail: false
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
@@ -48,6 +54,13 @@ bff:
     token:
       expiry:
         minutes: 30
+
+logging:
+  level:
+    # Never log SQL or bound parameter values in production.
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: OFF
+    org.hibernate.type.descriptor.sql: OFF
 
 management:
   endpoints:

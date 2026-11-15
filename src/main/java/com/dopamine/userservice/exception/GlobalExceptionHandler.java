@@ -2,6 +2,9 @@ package com.dopamine.userservice.exception;
 
 import com.dopamine.userservice.dto.ErrorObject;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.servlet.http.HttpServletRequest;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -21,7 +24,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<ErrorObject> handleUserAlreadyExists(UserAlreadyExistsException ex) {
-        log.warn("User already exists: {}", ex.getMessage());
+        log.warn("USER_ALREADY_EXISTS");
         ErrorObject error = ErrorObject.builder()
                 .code("USER_ALREADY_EXISTS")
                 .message(ex.getMessage())
@@ -31,7 +34,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorObject> handleUserNotFound(UserNotFoundException ex) {
-        log.warn("User not found: {}", ex.getMessage());
+        log.warn("USER_NOT_FOUND");
         ErrorObject error = ErrorObject.builder()
                 .code("USER_NOT_FOUND")
                 .message(ex.getMessage())
@@ -51,7 +54,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ErrorObject> handleInvalidCredentials(InvalidCredentialsException ex) {
-        log.warn("Invalid credentials: {}", ex.getMessage());
+        log.warn("INVALID_CREDENTIALS");
         ErrorObject error = ErrorObject.builder()
                 .code("INVALID_CREDENTIALS")
                 .message(ex.getMessage())
@@ -61,7 +64,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UnverifiedUserException.class)
     public ResponseEntity<ErrorObject> handleUnverifiedUser(UnverifiedUserException ex) {
-        log.warn("Unverified user: {}", ex.getMessage());
+        log.warn("USER_NOT_VERIFIED");
         ErrorObject error = ErrorObject.builder()
                 .code("USER_NOT_VERIFIED")
                 .message(ex.getMessage())
@@ -130,7 +133,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmailAlreadyInUseException.class)
     public ResponseEntity<ErrorObject> handleEmailAlreadyInUse(EmailAlreadyInUseException ex) {
-        log.warn("Email already in use: {}", ex.getMessage());
+        log.warn("EMAIL_ALREADY_IN_USE");
         ErrorObject error = ErrorObject.builder()
                 .code("EMAIL_ALREADY_IN_USE")
                 .message(ex.getMessage())
@@ -156,6 +159,31 @@ public class GlobalExceptionHandler {
                 .message(ex.getMessage())
                 .build();
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    /**
+     * Database constraint failures (duplicate NIC, etc.).
+     * The exception message can contain the failed row, so it is never logged
+     * or returned: only a short code, the constraint name and the request path
+     * (which carries the user ID on update endpoints).
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorObject> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex, HttpServletRequest request) {
+        String constraint = null;
+        for (Throwable t = ex; t != null; t = t.getCause()) {
+            if (t instanceof ConstraintViolationException cve) {
+                constraint = cve.getConstraintName();
+                break;
+            }
+        }
+        log.warn("DATA_INTEGRITY_VIOLATION constraint={} path={} {}",
+                constraint, request.getMethod(), request.getRequestURI());
+        ErrorObject error = ErrorObject.builder()
+                .code("DATA_CONFLICT")
+                .message("The request conflicts with existing data.")
+                .build();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
     @ExceptionHandler(Exception.class)

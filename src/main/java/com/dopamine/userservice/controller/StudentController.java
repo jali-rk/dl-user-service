@@ -36,7 +36,7 @@ public class StudentController {
     @PostMapping("/registrations")
     public ResponseEntity<StudentRegistrationResponse> registerStudent(
             @Valid @RequestBody StudentRegistrationRequest request) {
-        log.info("Student registration request received for email: {}", request.getEmail());
+        log.info("Student registration request received");
         StudentRegistrationResponse response = userService.registerStudent(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -48,7 +48,7 @@ public class StudentController {
     @PostMapping("/verify-code")
     public ResponseEntity<UserPublicView> verifyStudentCode(
             @Valid @RequestBody VerifyCodeRequest request) {
-        log.info("Student verification request received for email: {}", request.getEmail());
+        log.info("Student verification request received");
         log.info("Code: {}", request.getCode());
         UserPublicView user = userService.verifyStudentCode(request);
         return ResponseEntity.ok(user);
@@ -61,7 +61,7 @@ public class StudentController {
     @PostMapping("/resend-verification-code")
     public ResponseEntity<ResendVerificationCodeResponse> resendVerificationCode(
             @Valid @RequestBody ResendVerificationCodeRequest request) {
-        log.info("Resend verification code request received for email: {}", request.getEmail());
+        log.info("Resend verification code request received");
         ResendVerificationCodeResponse response = userService.resendVerificationCode(request);
         return ResponseEntity.ok(response);
     }
@@ -83,8 +83,7 @@ public class StudentController {
             @RequestParam(required = false) String status
     ) {
 
-        log.info("Get students request: page={}, pageSize={}, email={}, name={}, whatsappNumber={}, codeNumber={}, isVerified={}, status={}",
-                page, pageSize, email, name, whatsappNumber, codeNumber, isVerified, status);
+        log.info("Get students request: page={}, pageSize={}, isVerified={}, status={}", page, pageSize, isVerified, status);
 
         PaginatedStudentsResponse response = userService.getStudentsPaginated(
                 page,
